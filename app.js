@@ -200,6 +200,7 @@ function loadStoredData(key, fallback) {
 let appState = {
   posts: loadStoredData('cbsocials_posts', MOCK_POSTS),
   stories: loadStoredData('cbsocials_stories', SEED_STORIES),
+  isDirty: localStorage.getItem('cbsocials_stories_dirty') === 'true',
   storySearch: '',
   collapsedGroups: new Set(loadStoredData('cbsocials_collapsed_groups', [])),
   activeHubTab: 'stories',
@@ -227,8 +228,10 @@ function saveState() {
 
 async function saveStories() {
   try {
+    appState.isDirty = true;
+    localStorage.setItem('cbsocials_stories_dirty', 'true');
     localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
-    console.log('Stories saved to localStorage. Total:', appState.stories.length);
+    console.log('Stories saved to localStorage (dirty state). Total:', appState.stories.length);
     
     if (firebaseAuth && firestoreDb) {
       const user = firebaseAuth.currentUser;
@@ -247,11 +250,15 @@ async function saveStories() {
           });
         });
         await batch.commit();
+        appState.isDirty = false;
+        localStorage.removeItem('cbsocials_stories_dirty');
         console.log('Stories synced to Firestore successfully.');
+        showToast('Stories synced to Cloud successfully!');
       }
     }
   } catch (e) {
-    console.error('Error saving cbsocials_stories:', e);
+    console.error('Error saving cbsocials_stories to Firestore:', e);
+    showToast('Sync error: ' + e.message);
   }
 }
 
@@ -2460,6 +2467,12 @@ function setupRealtimeSubscription() {
           updatedAt: data.updatedAt
         });
       });
+      
+      if (appState.isDirty) {
+        console.log('Local changes are unsynced (dirty state). Skipping cloud override and uploading local state...');
+        saveStories();
+        return;
+      }
       
       if (updatedStories.length > 0) {
         // Override local stories list with Cloud Database snapshot
