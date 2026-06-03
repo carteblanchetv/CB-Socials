@@ -136,27 +136,41 @@ const SEED_STORIES = [
   { id: 'story-6', txDate: '17 MAY 2026', title: 'SHERIFF SHAMBLES', legalNote: '', copyVersions: ['A deep dive into the world of sheriffs where allegations of corruption have surfaced. But the Minister of Justice says there is nothing to see here.', 'They\'re the enforcement arm of the courts, and it can be a lucrative position. But insiders say all is not well in the world of sheriffs.', 'Allegations against a vital arm of the justice system... The minister insists they hold no water. Who holds the truth?'], updatedAt: new Date().toISOString() }
 ];
 
-// Supabase Client Reference & Initialization
-let supabase = null;
+// Firebase Client References & Initialization
+let firebaseApp = null;
+let firebaseAuth = null;
+let firestoreDb = null;
 
-function initSupabase() {
-  const url = localStorage.getItem('cbsocials_supabase_url');
-  const key = localStorage.getItem('cbsocials_supabase_key');
-  if (url && key) {
+function initFirebase() {
+  const configStr = localStorage.getItem('cbsocials_firebase_config');
+  if (configStr) {
     try {
-      if (window.supabase) {
-        supabase = window.supabase.createClient(url, key);
-        console.log('Supabase client initialized successfully.');
+      const config = JSON.parse(configStr);
+      if (window.firebase) {
+        if (window.firebase.apps.length === 0) {
+          firebaseApp = window.firebase.initializeApp(config);
+        } else {
+          firebaseApp = window.firebase.app();
+        }
+        firebaseAuth = window.firebase.auth();
+        firestoreDb = window.firebase.firestore();
+        console.log('Firebase client initialized successfully.');
       } else {
-        console.warn('Supabase client library CDN not found on window object.');
-        supabase = null;
+        console.warn('Firebase library compat CDNs not loaded on window.');
+        firebaseApp = null;
+        firebaseAuth = null;
+        firestoreDb = null;
       }
     } catch (e) {
-      console.error('Failed to initialize Supabase client:', e);
-      supabase = null;
+      console.error('Failed to parse or initialize Firebase client:', e);
+      firebaseApp = null;
+      firebaseAuth = null;
+      firestoreDb = null;
     }
   } else {
-    supabase = null;
+    firebaseApp = null;
+    firebaseAuth = null;
+    firestoreDb = null;
   }
 }
 
@@ -208,30 +222,24 @@ async function saveStories() {
     localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
     console.log('Stories saved to localStorage. Total:', appState.stories.length);
     
-    if (supabase) {
-      const userRes = await supabase.auth.getUser();
-      const user = userRes.data?.user;
+    if (firebaseAuth && firestoreDb) {
+      const user = firebaseAuth.currentUser;
       if (user) {
-        const payload = appState.stories.map(s => ({
-          id: s.id,
-          tx_date: s.txDate || 'TBC',
-          title: s.title || '',
-          legal_note: s.legalNote || '',
-          copy_versions: s.copyVersions || [],
-          updated_at: s.updatedAt || new Date().toISOString(),
-          user_id: user.id
-        }));
-        
-        const { error } = await supabase
-          .from('stories')
-          .upsert(payload);
-          
-        if (error) {
-          console.error('Error saving to Supabase:', error);
-          showToast('Failed to sync changes with cloud.');
-        } else {
-          console.log('Stories synced to Supabase successfully.');
-        }
+        const batch = firestoreDb.batch();
+        appState.stories.forEach(s => {
+          const docRef = firestoreDb.collection('stories').doc(s.id);
+          batch.set(docRef, {
+            id: s.id,
+            txDate: s.txDate || 'TBC',
+            title: s.title || '',
+            legalNote: s.legalNote || '',
+            copyVersions: s.copyVersions || [],
+            updatedAt: s.updatedAt || new Date().toISOString(),
+            userId: user.uid
+          });
+        });
+        await batch.commit();
+        console.log('Stories synced to Firestore successfully.');
       }
     }
   } catch (e) {
@@ -342,8 +350,7 @@ const elements = {
 
   dbSettingsModal: document.getElementById('db-settings-modal'),
   dbSettingsForm: document.getElementById('db-settings-form'),
-  dbSupabaseUrl: document.getElementById('db-supabase-url'),
-  dbSupabaseKey: document.getElementById('db-supabase-key'),
+  dbFirebaseConfig: document.getElementById('db-firebase-config'),
   btnDbSettingsCancel: document.getElementById('btn-db-settings-cancel'),
   btnDbSettingsClose: document.getElementById('btn-db-settings-close')
 };
@@ -1226,8 +1233,7 @@ function initEvents() {
   // DB Settings Event Listeners
   if (elements.btnDbStatus) {
     elements.btnDbStatus.addEventListener('click', () => {
-      if (elements.dbSupabaseUrl) elements.dbSupabaseUrl.value = localStorage.getItem('cbsocials_supabase_url') || '';
-      if (elements.dbSupabaseKey) elements.dbSupabaseKey.value = localStorage.getItem('cbsocials_supabase_key') || '';
+      if (elements.dbFirebaseConfig) elements.dbFirebaseConfig.value = localStorage.getItem('cbsocials_firebase_config') || '';
       if (elements.dbSettingsModal) elements.dbSettingsModal.style.display = 'flex';
     });
   }
@@ -1250,16 +1256,19 @@ function initEvents() {
   if (elements.dbSettingsForm) {
     elements.dbSettingsForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const url = elements.dbSupabaseUrl ? elements.dbSupabaseUrl.value.trim() : '';
-      const key = elements.dbSupabaseKey ? elements.dbSupabaseKey.value.trim() : '';
+      const configStr = elements.dbFirebaseConfig ? elements.dbFirebaseConfig.value.trim() : '';
       
-      if (url && key) {
-        localStorage.setItem('cbsocials_supabase_url', url);
-        localStorage.setItem('cbsocials_supabase_key', key);
-        showToast('Database credentials saved. Re-connecting...');
+      if (configStr) {
+        try {
+          JSON.parse(configStr); // Quick syntax validation
+          localStorage.setItem('cbsocials_firebase_config', configStr);
+          showToast('Firebase configuration saved. Re-connecting...');
+        } catch (err) {
+          alert('Invalid configuration JSON format. Please verify the copied config.');
+          return;
+        }
       } else {
-        localStorage.removeItem('cbsocials_supabase_url');
-        localStorage.removeItem('cbsocials_supabase_key');
+        localStorage.removeItem('cbsocials_firebase_config');
         showToast('Credentials cleared. Reverting to Local Mode.');
       }
       if (elements.dbSettingsModal) elements.dbSettingsModal.style.display = 'none';
@@ -1295,8 +1304,8 @@ function initEvents() {
       const email = elements.authEmail ? elements.authEmail.value.trim() : '';
       const password = elements.authPassword ? elements.authPassword.value : '';
       
-      if (!supabase) {
-        showToast('Supabase client not connected. Configure connection first.');
+      if (!firebaseAuth) {
+        showToast('Firebase client not connected. Configure connection first.');
         return;
       }
       
@@ -1307,13 +1316,11 @@ function initEvents() {
       
       try {
         if (authMode === 'login') {
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
+          await firebaseAuth.signInWithEmailAndPassword(email, password);
           showToast('Logged in successfully!');
         } else {
-          const { error } = await supabase.auth.signUp({ email, password });
-          if (error) throw error;
-          showToast('Sign up successful! Please check your email or log in.');
+          await firebaseAuth.createUserWithEmailAndPassword(email, password);
+          showToast('Sign up successful! You are now logged in.');
         }
         await initAuth();
       } catch (err) {
@@ -1332,17 +1339,15 @@ function initEvents() {
 
   if (elements.btnAuthDbConfig) {
     elements.btnAuthDbConfig.addEventListener('click', () => {
-      if (elements.dbSupabaseUrl) elements.dbSupabaseUrl.value = localStorage.getItem('cbsocials_supabase_url') || '';
-      if (elements.dbSupabaseKey) elements.dbSupabaseKey.value = localStorage.getItem('cbsocials_supabase_key') || '';
+      if (elements.dbFirebaseConfig) elements.dbFirebaseConfig.value = localStorage.getItem('cbsocials_firebase_config') || '';
       if (elements.dbSettingsModal) elements.dbSettingsModal.style.display = 'flex';
     });
   }
 
   if (elements.btnLogout) {
     elements.btnLogout.addEventListener('click', async () => {
-      if (supabase) {
-        const { error } = await supabase.auth.signOut();
-        if (error) console.error('Signout error:', error);
+      if (firebaseAuth) {
+        await firebaseAuth.signOut();
         showToast('Logged out.');
         await initAuth();
       }
@@ -1785,7 +1790,7 @@ function renderStoriesHub() {
       if (confirm(`Delete "${story.title}"? This cannot be undone.`)) {
         appState.stories = appState.stories.filter(s => s.id !== btn.dataset.id);
         saveStories();
-        if (supabase) {
+        if (firestoreDb) {
           deleteStoryFromDb(btn.dataset.id);
         }
         renderStoriesHub();
@@ -2313,13 +2318,13 @@ function processCSVData(rows) {
   return parsed;
 }
 
-// Supabase Authentication, Realtime Synchronisation & DB Sync
-let realtimeChannel = null;
+// Firebase Authentication, Realtime Synchronisation & DB Sync
+let realtimeListener = null;
 
 async function initAuth() {
-  initSupabase();
+  initFirebase();
   
-  if (!supabase) {
+  if (!firebaseAuth || !firestoreDb) {
     // Local/Offline fallback mode
     elements.authOverlay.style.display = 'none';
     elements.btnLogout.style.display = 'none';
@@ -2329,9 +2334,9 @@ async function initAuth() {
     if (elements.dbStatusText) elements.dbStatusText.textContent = 'Local Mode';
     if (elements.btnDbStatus) elements.btnDbStatus.title = 'Database Connection Status (Local Mode)';
     
-    if (realtimeChannel) {
-      realtimeChannel.unsubscribe();
-      realtimeChannel = null;
+    if (realtimeListener) {
+      realtimeListener();
+      realtimeListener = null;
     }
     
     // Restore stories from local storage
@@ -2340,10 +2345,9 @@ async function initAuth() {
     return;
   }
   
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    if (error || !user) {
+  // Set up Firebase Authentication state changes listener
+  firebaseAuth.onAuthStateChanged(async (user) => {
+    if (!user) {
       // User is not logged in, show auth form overlay
       elements.authOverlay.style.display = 'flex';
       elements.btnLogout.style.display = 'none';
@@ -2352,9 +2356,9 @@ async function initAuth() {
       if (elements.dbStatusText) elements.dbStatusText.textContent = 'Offline (Click to login)';
       if (elements.btnDbStatus) elements.btnDbStatus.title = 'Database Connection Offline. Log in to sync.';
       
-      if (realtimeChannel) {
-        realtimeChannel.unsubscribe();
-        realtimeChannel = null;
+      if (realtimeListener) {
+        realtimeListener();
+        realtimeListener = null;
       }
     } else {
       // User is logged in, hide auth overlay and set status to connected
@@ -2363,98 +2367,53 @@ async function initAuth() {
       
       if (elements.dbStatusDot) elements.dbStatusDot.className = 'db-status-dot connected';
       if (elements.dbStatusText) elements.dbStatusText.textContent = 'Connected';
-      if (elements.btnDbStatus) elements.btnDbStatus.title = `Connected to database as ${user.email}`;
+      if (elements.btnDbStatus) elements.btnDbStatus.title = `Connected to Firebase as ${user.email}`;
       
-      // Pull latest from database & listen to realtime updates
-      await fetchStoriesFromDb();
+      // Listen to realtime updates
       setupRealtimeSubscription();
     }
-  } catch (err) {
-    console.error('Error during auth check:', err);
-    // Fail gracefully back to local state
-    elements.authOverlay.style.display = 'none';
-    if (elements.dbStatusDot) elements.dbStatusDot.className = 'db-status-dot offline';
-    if (elements.dbStatusText) elements.dbStatusText.textContent = 'Auth Error';
-  }
-}
-
-async function fetchStoriesFromDb() {
-  if (!supabase) return;
-  try {
-    const { data, error } = await supabase
-      .from('stories')
-      .select('*')
-      .order('updated_at', { ascending: false });
-      
-    if (error) throw error;
-    
-    if (data) {
-      appState.stories = data.map(s => ({
-        id: s.id,
-        txDate: s.tx_date,
-        title: s.title,
-        legalNote: s.legal_note,
-        copyVersions: s.copy_versions,
-        updatedAt: s.updated_at
-      }));
-      localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
-      renderStoriesHub();
-    }
-  } catch (err) {
-    console.error('Error fetching stories from Supabase:', err);
-    showToast('Failed to load stories from database.');
-  }
+  });
 }
 
 async function deleteStoryFromDb(storyId) {
-  if (!supabase) return;
+  if (!firestoreDb) return;
   try {
-    const { error } = await supabase
-      .from('stories')
-      .delete()
-      .eq('id', storyId);
-      
-    if (error) throw error;
-    console.log('Story deleted from Supabase:', storyId);
+    await firestoreDb.collection('stories').doc(storyId).delete();
+    console.log('Story deleted from Firebase:', storyId);
   } catch (err) {
-    console.error('Error deleting story from Supabase:', err);
+    console.error('Error deleting story from Firebase:', err);
     showToast('Failed to delete story from database.');
   }
 }
 
 function setupRealtimeSubscription() {
-  if (!supabase || realtimeChannel) return;
+  if (!firestoreDb || realtimeListener) return;
   
-  realtimeChannel = supabase
-    .channel('public:stories')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'stories' }, (payload) => {
-      console.log('Realtime change received:', payload);
-      const { eventType, new: newRow, old: oldRow } = payload;
+  realtimeListener = firestoreDb
+    .collection('stories')
+    .orderBy('updatedAt', 'desc')
+    .onSnapshot((snapshot) => {
+      const updatedStories = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        updatedStories.push({
+          id: data.id,
+          txDate: data.txDate,
+          title: data.title,
+          legalNote: data.legalNote,
+          copyVersions: data.copyVersions,
+          updatedAt: data.updatedAt
+        });
+      });
       
-      if (eventType === 'INSERT' || eventType === 'UPDATE') {
-        const updatedStory = {
-          id: newRow.id,
-          txDate: newRow.tx_date,
-          title: newRow.title,
-          legalNote: newRow.legal_note,
-          copyVersions: newRow.copy_versions,
-          updatedAt: newRow.updated_at
-        };
-        
-        const idx = appState.stories.findIndex(s => s.id === updatedStory.id);
-        if (idx !== -1) {
-          appState.stories[idx] = updatedStory;
-        } else {
-          appState.stories.unshift(updatedStory);
-        }
-      } else if (eventType === 'DELETE') {
-        appState.stories = appState.stories.filter(s => s.id !== oldRow.id);
-      }
-      
+      // Override local stories list with Cloud Database snapshot
+      appState.stories = updatedStories;
       localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
       renderStoriesHub();
-    })
-    .subscribe();
+      console.log('Firebase Firestore snapshot synchronized. Total:', updatedStories.length);
+    }, (err) => {
+      console.error('Firebase Firestore realtime sync error:', err);
+    });
 }
 
 // 9. Startup Initialization
