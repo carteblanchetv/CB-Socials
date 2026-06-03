@@ -159,7 +159,7 @@ let appState = {
   activeHubTab: 'stories',
   copyLibrary: loadStoredData('cbsocials_copy_library', MOCK_COPY_LIBRARY),
   activeCopyFilter: 'all',
-  activeDay: 'Mon',
+  activeDay: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date().getDay()],
   searchQuery: '',
   filterPlatform: 'all',
   filterStatus: 'all',
@@ -1264,6 +1264,19 @@ function renderCopyLibrary() {
   });
 }
 
+// ── Time-ago helper ───────────────────────────────────────────────────────────
+function formatTimeAgo(date) {
+  const parsedDate = typeof date === 'string' ? new Date(date) : date;
+  if (!parsedDate || isNaN(parsedDate.getTime())) return '';
+  const now = new Date();
+  const diff = Math.floor((now - parsedDate) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return parsedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
 // Helper to extract text from a copy version (which can be a string or object)
 function getCopyVersionText(cv) {
   if (!cv) return '';
@@ -1993,6 +2006,16 @@ function processCSVData(rows) {
 
 // 9. Startup Initialization
 function init() {
+  // Highlight the tab matching the current activeDay
+  if (elements.dayTabsList) {
+    const currentTab = elements.dayTabsList.querySelector(`.day-tab[data-day="${appState.activeDay}"]`);
+    if (currentTab) {
+      const activeTab = elements.dayTabsList.querySelector('.day-tab.active');
+      if (activeTab) activeTab.classList.remove('active');
+      currentTab.classList.add('active');
+    }
+  }
+
   initEvents();
   renderSuggestions();
   renderDrafts();
