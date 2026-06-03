@@ -2394,6 +2394,53 @@ async function deleteStoryFromDb(storyId) {
   }
 }
 
+async function restoreStoriesFromBackup() {
+  try {
+    let stored = localStorage.getItem('cbsocials_stories');
+    let stories = [];
+    try {
+      stories = stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      stories = [];
+    }
+    
+    if (stories.length === 0) {
+      console.log('Local storage empty, fetching parsed_stories.json backup from server...');
+      const response = await fetch('parsed_stories.json');
+      if (response.ok) {
+        const parsed = await response.json();
+        if (parsed && parsed.length > 0) {
+          // Format correctly to match appState.stories expectations
+          stories = parsed.map((s, idx) => ({
+            id: s.id || `story-backup-${idx}-${Date.now()}`,
+            txDate: s.txDate || 'TBC',
+            title: s.title || '',
+            legalNote: s.legalNote || '',
+            copyVersions: s.copyVersions || [],
+            updatedAt: s.updatedAt || new Date().toISOString()
+          }));
+        }
+      }
+    }
+    
+    if (stories.length === 0) {
+      stories = SEED_STORIES;
+    }
+    
+    appState.stories = stories;
+    localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
+    renderStoriesHub();
+    
+    // Sync to Firestore using the batch save function
+    await saveStories();
+    showToast('Stories restored from local backup successfully!');
+  } catch (err) {
+    console.error('Failed to restore stories from backup:', err);
+  }
+}
+
+let isFirstLoad = true;
+
 function setupRealtimeSubscription() {
   if (!firestoreDb || realtimeListener) return;
   
@@ -2414,11 +2461,24 @@ function setupRealtimeSubscription() {
         });
       });
       
-      // Override local stories list with Cloud Database snapshot
-      appState.stories = updatedStories;
-      localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
-      renderStoriesHub();
-      console.log('Firebase Firestore snapshot synchronized. Total:', updatedStories.length);
+      if (updatedStories.length > 0) {
+        // Override local stories list with Cloud Database snapshot
+        appState.stories = updatedStories;
+        localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
+        renderStoriesHub();
+        isFirstLoad = false;
+        console.log('Firebase Firestore snapshot synchronized. Total:', updatedStories.length);
+      } else if (isFirstLoad) {
+        // First load and cloud database is completely empty. Restore from local backup.
+        isFirstLoad = false;
+        console.log('Cloud database is empty on first load. Restoring from local backup...');
+        restoreStoriesFromBackup();
+      } else {
+        // User manually deleted all stories
+        appState.stories = [];
+        localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
+        renderStoriesHub();
+      }
     }, (err) => {
       console.error('Firebase Firestore realtime sync error:', err);
     });
