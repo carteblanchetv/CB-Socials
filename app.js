@@ -136,6 +136,30 @@ const SEED_STORIES = [
   { id: 'story-6', txDate: '17 MAY 2026', title: 'SHERIFF SHAMBLES', legalNote: '', copyVersions: ['A deep dive into the world of sheriffs where allegations of corruption have surfaced. But the Minister of Justice says there is nothing to see here.', 'They\'re the enforcement arm of the courts, and it can be a lucrative position. But insiders say all is not well in the world of sheriffs.', 'Allegations against a vital arm of the justice system... The minister insists they hold no water. Who holds the truth?'], updatedAt: new Date().toISOString() }
 ];
 
+// Supabase Client Reference & Initialization
+let supabase = null;
+
+function initSupabase() {
+  const url = localStorage.getItem('cbsocials_supabase_url');
+  const key = localStorage.getItem('cbsocials_supabase_key');
+  if (url && key) {
+    try {
+      if (window.supabase) {
+        supabase = window.supabase.createClient(url, key);
+        console.log('Supabase client initialized successfully.');
+      } else {
+        console.warn('Supabase client library CDN not found on window object.');
+        supabase = null;
+      }
+    } catch (e) {
+      console.error('Failed to initialize Supabase client:', e);
+      supabase = null;
+    }
+  } else {
+    supabase = null;
+  }
+}
+
 // Safe localStorage parsing helper
 function loadStoredData(key, fallback) {
   try {
@@ -179,10 +203,37 @@ function saveState() {
   }
 }
 
-function saveStories() {
+async function saveStories() {
   try {
     localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
     console.log('Stories saved to localStorage. Total:', appState.stories.length);
+    
+    if (supabase) {
+      const userRes = await supabase.auth.getUser();
+      const user = userRes.data?.user;
+      if (user) {
+        const payload = appState.stories.map(s => ({
+          id: s.id,
+          tx_date: s.txDate || 'TBC',
+          title: s.title || '',
+          legal_note: s.legalNote || '',
+          copy_versions: s.copyVersions || [],
+          updated_at: s.updatedAt || new Date().toISOString(),
+          user_id: user.id
+        }));
+        
+        const { error } = await supabase
+          .from('stories')
+          .upsert(payload);
+          
+        if (error) {
+          console.error('Error saving to Supabase:', error);
+          showToast('Failed to sync changes with cloud.');
+        } else {
+          console.log('Stories synced to Supabase successfully.');
+        }
+      }
+    }
   } catch (e) {
     console.error('Error saving cbsocials_stories:', e);
   }
@@ -264,7 +315,37 @@ const elements = {
   hubTabStories: document.getElementById('hub-tab-stories'),
   hubTabDrafts: document.getElementById('hub-tab-drafts'),
   hubPanelStories: document.getElementById('hub-panel-stories'),
-  hubPanelDrafts: document.getElementById('hub-panel-drafts')
+  hubPanelDrafts: document.getElementById('hub-panel-drafts'),
+
+  // Help Guide Modal
+  btnHelpToggle: document.getElementById('btn-help-toggle'),
+  helpModal: document.getElementById('help-modal'),
+  btnHelpModalClose: document.getElementById('btn-help-modal-close'),
+  btnHelpCloseOk: document.getElementById('btn-help-close-ok'),
+
+  // Supabase Database & Auth Elements
+  btnDbStatus: document.getElementById('btn-db-status'),
+  dbStatusDot: document.getElementById('db-status-dot'),
+  dbStatusText: document.getElementById('db-status-text'),
+  btnLogout: document.getElementById('btn-logout'),
+  
+  authOverlay: document.getElementById('auth-overlay'),
+  authForm: document.getElementById('auth-form'),
+  authEmail: document.getElementById('auth-email'),
+  authPassword: document.getElementById('auth-password'),
+  btnAuthSubmit: document.getElementById('btn-auth-submit'),
+  btnAuthToggle: document.getElementById('btn-auth-toggle'),
+  authToggleText: document.getElementById('auth-toggle-text'),
+  authTitle: document.getElementById('auth-title'),
+  authSubtitle: document.getElementById('auth-subtitle'),
+  btnAuthDbConfig: document.getElementById('btn-auth-db-config'),
+
+  dbSettingsModal: document.getElementById('db-settings-modal'),
+  dbSettingsForm: document.getElementById('db-settings-form'),
+  dbSupabaseUrl: document.getElementById('db-supabase-url'),
+  dbSupabaseKey: document.getElementById('db-supabase-key'),
+  btnDbSettingsCancel: document.getElementById('btn-db-settings-cancel'),
+  btnDbSettingsClose: document.getElementById('btn-db-settings-close')
 };
 
 // Custom Suggestions Generator based on local parsed CSV data
@@ -1119,6 +1200,154 @@ function initEvents() {
     closeStoryModal();
     renderStoriesHub();
   });
+
+  // Help Guide Modal Event Listeners
+  if (elements.btnHelpToggle) {
+    elements.btnHelpToggle.addEventListener('click', () => {
+      if (elements.helpModal) elements.helpModal.style.display = 'flex';
+    });
+  }
+  if (elements.btnHelpModalClose) {
+    elements.btnHelpModalClose.addEventListener('click', () => {
+      if (elements.helpModal) elements.helpModal.style.display = 'none';
+    });
+  }
+  if (elements.btnHelpCloseOk) {
+    elements.btnHelpCloseOk.addEventListener('click', () => {
+      if (elements.helpModal) elements.helpModal.style.display = 'none';
+    });
+  }
+  window.addEventListener('click', (e) => {
+    if (elements.helpModal && e.target === elements.helpModal) {
+      elements.helpModal.style.display = 'none';
+    }
+  });
+
+  // DB Settings Event Listeners
+  if (elements.btnDbStatus) {
+    elements.btnDbStatus.addEventListener('click', () => {
+      if (elements.dbSupabaseUrl) elements.dbSupabaseUrl.value = localStorage.getItem('cbsocials_supabase_url') || '';
+      if (elements.dbSupabaseKey) elements.dbSupabaseKey.value = localStorage.getItem('cbsocials_supabase_key') || '';
+      if (elements.dbSettingsModal) elements.dbSettingsModal.style.display = 'flex';
+    });
+  }
+  if (elements.btnDbSettingsClose) {
+    elements.btnDbSettingsClose.addEventListener('click', () => {
+      if (elements.dbSettingsModal) elements.dbSettingsModal.style.display = 'none';
+    });
+  }
+  if (elements.btnDbSettingsCancel) {
+    elements.btnDbSettingsCancel.addEventListener('click', () => {
+      if (elements.dbSettingsModal) elements.dbSettingsModal.style.display = 'none';
+    });
+  }
+  window.addEventListener('click', (e) => {
+    if (elements.dbSettingsModal && e.target === elements.dbSettingsModal) {
+      elements.dbSettingsModal.style.display = 'none';
+    }
+  });
+
+  if (elements.dbSettingsForm) {
+    elements.dbSettingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = elements.dbSupabaseUrl ? elements.dbSupabaseUrl.value.trim() : '';
+      const key = elements.dbSupabaseKey ? elements.dbSupabaseKey.value.trim() : '';
+      
+      if (url && key) {
+        localStorage.setItem('cbsocials_supabase_url', url);
+        localStorage.setItem('cbsocials_supabase_key', key);
+        showToast('Database credentials saved. Re-connecting...');
+      } else {
+        localStorage.removeItem('cbsocials_supabase_url');
+        localStorage.removeItem('cbsocials_supabase_key');
+        showToast('Credentials cleared. Reverting to Local Mode.');
+      }
+      if (elements.dbSettingsModal) elements.dbSettingsModal.style.display = 'none';
+      await initAuth();
+    });
+  }
+
+  // Auth Overlay Event Listeners
+  let authMode = 'login';
+  if (elements.btnAuthToggle) {
+    elements.btnAuthToggle.addEventListener('click', () => {
+      if (authMode === 'login') {
+        authMode = 'signup';
+        if (elements.authTitle) elements.authTitle.textContent = 'Create an Account';
+        if (elements.authSubtitle) elements.authSubtitle.textContent = 'Sign up to sync socials copy in real-time';
+        if (elements.btnAuthSubmit) elements.btnAuthSubmit.textContent = 'Sign Up';
+        if (elements.authToggleText) elements.authToggleText.textContent = 'Already have an account?';
+        elements.btnAuthToggle.textContent = 'Log In';
+      } else {
+        authMode = 'login';
+        if (elements.authTitle) elements.authTitle.textContent = 'Log in to Dashboard';
+        if (elements.authSubtitle) elements.authSubtitle.textContent = 'Enter your email and password to sync socials copy';
+        if (elements.btnAuthSubmit) elements.btnAuthSubmit.textContent = 'Log In';
+        if (elements.authToggleText) elements.authToggleText.textContent = 'Need an account?';
+        elements.btnAuthToggle.textContent = 'Sign Up';
+      }
+    });
+  }
+
+  if (elements.authForm) {
+    elements.authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = elements.authEmail ? elements.authEmail.value.trim() : '';
+      const password = elements.authPassword ? elements.authPassword.value : '';
+      
+      if (!supabase) {
+        showToast('Supabase client not connected. Configure connection first.');
+        return;
+      }
+      
+      if (elements.btnAuthSubmit) {
+        elements.btnAuthSubmit.disabled = true;
+        elements.btnAuthSubmit.textContent = authMode === 'login' ? 'Logging in...' : 'Signing up...';
+      }
+      
+      try {
+        if (authMode === 'login') {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          showToast('Logged in successfully!');
+        } else {
+          const { error } = await supabase.auth.signUp({ email, password });
+          if (error) throw error;
+          showToast('Sign up successful! Please check your email or log in.');
+        }
+        await initAuth();
+      } catch (err) {
+        console.error('Authentication error:', err);
+        alert(err.message || 'Authentication failed. Please verify credentials.');
+        if (elements.btnAuthSubmit) {
+          elements.btnAuthSubmit.textContent = authMode === 'login' ? 'Log In' : 'Sign Up';
+        }
+      } finally {
+        if (elements.btnAuthSubmit) {
+          elements.btnAuthSubmit.disabled = false;
+        }
+      }
+    });
+  }
+
+  if (elements.btnAuthDbConfig) {
+    elements.btnAuthDbConfig.addEventListener('click', () => {
+      if (elements.dbSupabaseUrl) elements.dbSupabaseUrl.value = localStorage.getItem('cbsocials_supabase_url') || '';
+      if (elements.dbSupabaseKey) elements.dbSupabaseKey.value = localStorage.getItem('cbsocials_supabase_key') || '';
+      if (elements.dbSettingsModal) elements.dbSettingsModal.style.display = 'flex';
+    });
+  }
+
+  if (elements.btnLogout) {
+    elements.btnLogout.addEventListener('click', async () => {
+      if (supabase) {
+        const { error } = await supabase.auth.signOut();
+        if (error) console.error('Signout error:', error);
+        showToast('Logged out.');
+        await initAuth();
+      }
+    });
+  }
 }
 
 // ── Copy Library Modal Helpers ────────────────────────────────────────────────
@@ -1556,6 +1785,9 @@ function renderStoriesHub() {
       if (confirm(`Delete "${story.title}"? This cannot be undone.`)) {
         appState.stories = appState.stories.filter(s => s.id !== btn.dataset.id);
         saveStories();
+        if (supabase) {
+          deleteStoryFromDb(btn.dataset.id);
+        }
         renderStoriesHub();
         showToast('Story deleted.');
       }
@@ -2081,6 +2313,150 @@ function processCSVData(rows) {
   return parsed;
 }
 
+// Supabase Authentication, Realtime Synchronisation & DB Sync
+let realtimeChannel = null;
+
+async function initAuth() {
+  initSupabase();
+  
+  if (!supabase) {
+    // Local/Offline fallback mode
+    elements.authOverlay.style.display = 'none';
+    elements.btnLogout.style.display = 'none';
+    
+    // Set UI indicators to local mode
+    if (elements.dbStatusDot) elements.dbStatusDot.className = 'db-status-dot';
+    if (elements.dbStatusText) elements.dbStatusText.textContent = 'Local Mode';
+    if (elements.btnDbStatus) elements.btnDbStatus.title = 'Database Connection Status (Local Mode)';
+    
+    if (realtimeChannel) {
+      realtimeChannel.unsubscribe();
+      realtimeChannel = null;
+    }
+    
+    // Restore stories from local storage
+    appState.stories = loadStoredData('cbsocials_stories', SEED_STORIES);
+    renderStoriesHub();
+    return;
+  }
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
+      // User is not logged in, show auth form overlay
+      elements.authOverlay.style.display = 'flex';
+      elements.btnLogout.style.display = 'none';
+      
+      if (elements.dbStatusDot) elements.dbStatusDot.className = 'db-status-dot offline';
+      if (elements.dbStatusText) elements.dbStatusText.textContent = 'Offline (Click to login)';
+      if (elements.btnDbStatus) elements.btnDbStatus.title = 'Database Connection Offline. Log in to sync.';
+      
+      if (realtimeChannel) {
+        realtimeChannel.unsubscribe();
+        realtimeChannel = null;
+      }
+    } else {
+      // User is logged in, hide auth overlay and set status to connected
+      elements.authOverlay.style.display = 'none';
+      elements.btnLogout.style.display = 'inline-block';
+      
+      if (elements.dbStatusDot) elements.dbStatusDot.className = 'db-status-dot connected';
+      if (elements.dbStatusText) elements.dbStatusText.textContent = 'Connected';
+      if (elements.btnDbStatus) elements.btnDbStatus.title = `Connected to database as ${user.email}`;
+      
+      // Pull latest from database & listen to realtime updates
+      await fetchStoriesFromDb();
+      setupRealtimeSubscription();
+    }
+  } catch (err) {
+    console.error('Error during auth check:', err);
+    // Fail gracefully back to local state
+    elements.authOverlay.style.display = 'none';
+    if (elements.dbStatusDot) elements.dbStatusDot.className = 'db-status-dot offline';
+    if (elements.dbStatusText) elements.dbStatusText.textContent = 'Auth Error';
+  }
+}
+
+async function fetchStoriesFromDb() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('stories')
+      .select('*')
+      .order('updated_at', { ascending: false });
+      
+    if (error) throw error;
+    
+    if (data) {
+      appState.stories = data.map(s => ({
+        id: s.id,
+        txDate: s.tx_date,
+        title: s.title,
+        legalNote: s.legal_note,
+        copyVersions: s.copy_versions,
+        updatedAt: s.updated_at
+      }));
+      localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
+      renderStoriesHub();
+    }
+  } catch (err) {
+    console.error('Error fetching stories from Supabase:', err);
+    showToast('Failed to load stories from database.');
+  }
+}
+
+async function deleteStoryFromDb(storyId) {
+  if (!supabase) return;
+  try {
+    const { error } = await supabase
+      .from('stories')
+      .delete()
+      .eq('id', storyId);
+      
+    if (error) throw error;
+    console.log('Story deleted from Supabase:', storyId);
+  } catch (err) {
+    console.error('Error deleting story from Supabase:', err);
+    showToast('Failed to delete story from database.');
+  }
+}
+
+function setupRealtimeSubscription() {
+  if (!supabase || realtimeChannel) return;
+  
+  realtimeChannel = supabase
+    .channel('public:stories')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stories' }, (payload) => {
+      console.log('Realtime change received:', payload);
+      const { eventType, new: newRow, old: oldRow } = payload;
+      
+      if (eventType === 'INSERT' || eventType === 'UPDATE') {
+        const updatedStory = {
+          id: newRow.id,
+          txDate: newRow.tx_date,
+          title: newRow.title,
+          legalNote: newRow.legal_note,
+          copyVersions: newRow.copy_versions,
+          updatedAt: newRow.updated_at
+        };
+        
+        const idx = appState.stories.findIndex(s => s.id === updatedStory.id);
+        if (idx !== -1) {
+          appState.stories[idx] = updatedStory;
+        } else {
+          appState.stories.unshift(updatedStory);
+        }
+      } else if (eventType === 'DELETE') {
+        appState.stories = appState.stories.filter(s => s.id !== oldRow.id);
+      }
+      
+      localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
+      renderStoriesHub();
+    })
+    .subscribe();
+}
+
 // 9. Startup Initialization
 function init() {
   // Highlight the tab matching the current activeDay
@@ -2094,6 +2470,7 @@ function init() {
   }
 
   initEvents();
+  initAuth();
   renderSuggestions();
   renderDrafts();
   renderCopyLibrary();
