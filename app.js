@@ -141,11 +141,29 @@ let firebaseApp = null;
 let firebaseAuth = null;
 let firestoreDb = null;
 
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCaBKQk602tqk0251lzped5FBf1mx6WxKs",
+  authDomain: "cb-socials.firebaseapp.com",
+  projectId: "cb-socials",
+  storageBucket: "cb-socials.firebasestorage.app",
+  messagingSenderId: "201282195290",
+  appId: "1:201282195290:web:cd37171760b551e30c2d63",
+  measurementId: "G-0P4Q2XCGD0"
+};
+
 function initFirebase() {
   const configStr = localStorage.getItem('cbsocials_firebase_config');
+  let config = DEFAULT_FIREBASE_CONFIG;
   if (configStr) {
     try {
-      const config = JSON.parse(configStr);
+      config = JSON.parse(configStr);
+    } catch (e) {
+      console.error('Failed to parse override firebase config, using default:', e);
+    }
+  }
+  
+  if (config) {
+    try {
       if (window.firebase) {
         if (window.firebase.apps.length === 0) {
           firebaseApp = window.firebase.initializeApp(config);
@@ -157,20 +175,10 @@ function initFirebase() {
         console.log('Firebase client initialized successfully.');
       } else {
         console.warn('Firebase library compat CDNs not loaded on window.');
-        firebaseApp = null;
-        firebaseAuth = null;
-        firestoreDb = null;
       }
     } catch (e) {
-      console.error('Failed to parse or initialize Firebase client:', e);
-      firebaseApp = null;
-      firebaseAuth = null;
-      firestoreDb = null;
+      console.error('Failed to initialize Firebase client:', e);
     }
-  } else {
-    firebaseApp = null;
-    firebaseAuth = null;
-    firestoreDb = null;
   }
 }
 
