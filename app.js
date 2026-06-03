@@ -1300,7 +1300,7 @@ function renderStoriesHub() {
   if (query) {
     stories = stories.filter(s =>
       s.title.toLowerCase().includes(query) ||
-      s.txDate.toLowerCase().includes(query) ||
+      (s.txDate || '').toLowerCase().includes(query) ||
       (s.legalNote || '').toLowerCase().includes(query) ||
       (s.copyVersions || []).some(v => getCopyVersionText(v).toLowerCase().includes(query))
     );
@@ -1354,7 +1354,7 @@ function renderStoriesHub() {
     const groupHeader = document.createElement('div');
     
     const isTbc = txDate.includes('TBC') || txDate.includes('UNLINKED');
-    const isUpcomingActive = txDate.toUpperCase().trim() === upcomingSundayStr;
+    const isUpcomingActive = !isTbc && parseTxDate(txDate) === parseTxDate(upcomingSundayStr);
 
     let headerClass = 'story-date-header story-date-header--clickable';
     let labelIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
@@ -1564,10 +1564,23 @@ function renderStoriesHub() {
 }
 
 function parseTxDate(dateStr) {
-  if (!dateStr) return 0;
+  if (!dateStr || typeof dateStr !== 'string') return 0;
+  const clean = dateStr.toUpperCase().trim();
+  if (clean === 'TBC' || clean === 'UNLINKED' || clean === '') return 0;
   try {
-    // Convert "31 MAY 2026" → Date
-    return new Date(dateStr.replace(/(\d+)\s+([A-Z]+)\s+(\d+)/, '$1 $2 $3'));
+    const matched = clean.match(/(\d+)\s+([A-Z]+)\s+(\d+)/);
+    if (matched) {
+      const day = parseInt(matched[1], 10);
+      const monthStr = matched[2];
+      const year = parseInt(matched[3], 10);
+      const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const monthIdx = months.indexOf(monthStr);
+      if (monthIdx !== -1) {
+        return new Date(year, monthIdx, day).getTime();
+      }
+    }
+    const d = new Date(clean);
+    return isNaN(d.getTime()) ? 0 : d.getTime();
   } catch(e) { return 0; }
 }
 
