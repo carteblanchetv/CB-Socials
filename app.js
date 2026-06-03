@@ -236,20 +236,24 @@ async function saveStories() {
     if (firebaseAuth && firestoreDb) {
       const user = firebaseAuth.currentUser;
       if (user) {
-        const batch = firestoreDb.batch();
-        appState.stories.forEach(s => {
-          const docRef = firestoreDb.collection('stories').doc(s.id);
-          batch.set(docRef, {
-            id: s.id,
-            txDate: s.txDate || 'TBC',
-            title: s.title || '',
-            legalNote: s.legalNote || '',
-            copyVersions: s.copyVersions || [],
-            updatedAt: s.updatedAt || new Date().toISOString(),
-            userId: user.uid
+        const chunkSize = 200;
+        for (let i = 0; i < appState.stories.length; i += chunkSize) {
+          const chunk = appState.stories.slice(i, i + chunkSize);
+          const batch = firestoreDb.batch();
+          chunk.forEach(s => {
+            const docRef = firestoreDb.collection('stories').doc(s.id);
+            batch.set(docRef, {
+              id: s.id,
+              txDate: s.txDate || 'TBC',
+              title: s.title || '',
+              legalNote: s.legalNote || '',
+              copyVersions: s.copyVersions || [],
+              updatedAt: s.updatedAt || new Date().toISOString(),
+              userId: user.uid
+            });
           });
-        });
-        await batch.commit();
+          await batch.commit();
+        }
         appState.isDirty = false;
         localStorage.removeItem('cbsocials_stories_dirty');
         console.log('Stories synced to Firestore successfully.');
@@ -1368,6 +1372,14 @@ function initEvents() {
       }
     });
   }
+
+  // Sync state if credentials change in another tab
+  window.addEventListener('storage', async (e) => {
+    if (e.key === 'cbsocials_firebase_config') {
+      console.log('Firebase credentials updated in another window/tab. Re-connecting...');
+      await initAuth();
+    }
+  });
 }
 
 // ── Copy Library Modal Helpers ────────────────────────────────────────────────
@@ -2475,12 +2487,19 @@ function setupRealtimeSubscription() {
       }
       
       if (updatedStories.length > 0) {
-        // Override local stories list with Cloud Database snapshot
-        appState.stories = updatedStories;
-        localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
-        renderStoriesHub();
-        isFirstLoad = false;
-        console.log('Firebase Firestore snapshot synchronized. Total:', updatedStories.length);
+        if (updatedStories.length >= appState.stories.length) {
+          // Override local stories list with Cloud Database snapshot
+          appState.stories = updatedStories;
+          localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
+          renderStoriesHub();
+          isFirstLoad = false;
+          console.log('Firebase Firestore snapshot synchronized. Total:', updatedStories.length);
+        } else {
+          // Local state has more stories than the cloud (likely a pending local upload).
+          // Push local stories to the cloud to ensure all users receive the latest set.
+          console.log('Local client has more stories than Cloud. Uploading local copy to Firestore...');
+          saveStories();
+        }
       } else if (isFirstLoad) {
         // First load and cloud database is completely empty. Restore from local backup.
         isFirstLoad = false;
