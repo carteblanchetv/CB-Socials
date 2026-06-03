@@ -1079,7 +1079,8 @@ function initEvents() {
   elements.storyForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const id = elements.storyFormId.value;
-    const txDate = elements.storyFormTxdate.value.trim().toUpperCase();
+    const txDateInput = elements.storyFormTxdate.value.trim().toUpperCase();
+    const txDate = txDateInput === '' ? 'TBC' : txDateInput;
     const title = elements.storyFormTitle.value.trim().toUpperCase();
     const legalNote = elements.storyFormLegal.value.trim();
     const copyVersions = [];
@@ -1321,26 +1322,64 @@ function renderStoriesHub() {
   // Group by TX date
   const groups = {};
   sortedStories.forEach(s => {
-    if (!groups[s.txDate]) groups[s.txDate] = [];
-    groups[s.txDate].push(s);
+    const key = s.txDate ? s.txDate.trim() : 'TBC';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(s);
   });
 
-  Object.keys(groups).forEach(txDate => {
+  // Calculate upcoming Sunday string (e.g., "7 JUN 2026")
+  const today = new Date();
+  const dayOfWeekNum = today.getDay();
+  const diffDays = dayOfWeekNum === 0 ? 0 : 7 - dayOfWeekNum;
+  const upcomingSunday = new Date(today);
+  upcomingSunday.setDate(today.getDate() + diffDays);
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const upcomingSundayStr = `${upcomingSunday.getDate()} ${months[upcomingSunday.getMonth()]} ${upcomingSunday.getFullYear()}`;
+
+  // Sort groups: place TBC/Unlinked at the absolute top, then chronological descending
+  const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
+    const isATbc = a.includes('TBC') || a.includes('UNLINKED');
+    const isBTbc = b.includes('TBC') || b.includes('UNLINKED');
+    if (isATbc && !isBTbc) return -1;
+    if (!isATbc && isBTbc) return 1;
+    return parseTxDate(b) - parseTxDate(a);
+  });
+
+  sortedGroupKeys.forEach(txDate => {
     const isCollapsed = appState.collapsedGroups.has(txDate);
     const groupEl = document.createElement('div');
     groupEl.className = 'story-date-group' + (isCollapsed ? ' collapsed' : '');
 
     const storyList = groups[txDate];
     const groupHeader = document.createElement('div');
-    groupHeader.className = 'story-date-header story-date-header--clickable';
+    
+    const isTbc = txDate.includes('TBC') || txDate.includes('UNLINKED');
+    const isUpcomingActive = txDate.toUpperCase().trim() === upcomingSundayStr;
+
+    let headerClass = 'story-date-header story-date-header--clickable';
+    let labelIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+    let labelText = `TX: <strong>${escapeHtml(txDate)}</strong>`;
+    let activeBadgeHtml = '';
+
+    if (isTbc) {
+      headerClass += ' story-date-header--tbc';
+      labelIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+      labelText = `<strong style="color: var(--color-warning);">UNLINKED DRAFTS / TBC</strong>`;
+    } else if (isUpcomingActive) {
+      headerClass += ' story-date-header--active-week';
+      activeBadgeHtml = `<span class="active-week-badge">Active Broadcast Week</span>`;
+    }
+
+    groupHeader.className = headerClass;
     groupHeader.setAttribute('role', 'button');
     groupHeader.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
     groupHeader.innerHTML = `
       <div class="story-date-label">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        TX: <strong>${escapeHtml(txDate)}</strong>
+        ${labelIcon}
+        <span>${labelText}</span>
       </div>
       <div style="display:flex;align-items:center;gap:0.5rem;">
+        ${activeBadgeHtml}
         <span class="story-count-badge">${storyList.length} ${storyList.length === 1 ? 'story' : 'stories'}</span>
         <svg class="story-group-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
