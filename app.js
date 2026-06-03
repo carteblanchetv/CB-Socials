@@ -136,13 +136,28 @@ const SEED_STORIES = [
   { id: 'story-6', txDate: '17 MAY 2026', title: 'SHERIFF SHAMBLES', legalNote: '', copyVersions: ['A deep dive into the world of sheriffs where allegations of corruption have surfaced. But the Minister of Justice says there is nothing to see here.', 'They\'re the enforcement arm of the courts, and it can be a lucrative position. But insiders say all is not well in the world of sheriffs.', 'Allegations against a vital arm of the justice system... The minister insists they hold no water. Who holds the truth?'], updatedAt: new Date().toISOString() }
 ];
 
+// Safe localStorage parsing helper
+function loadStoredData(key, fallback) {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Return parsed value if it is not null
+      if (parsed !== null) return parsed;
+    }
+  } catch (e) {
+    console.error(`Error parsing stored data for key "${key}":`, e);
+  }
+  return fallback;
+}
+
 let appState = {
-  posts: JSON.parse(localStorage.getItem('cbsocials_posts')) || MOCK_POSTS,
-  stories: JSON.parse(localStorage.getItem('cbsocials_stories')) || SEED_STORIES,
+  posts: loadStoredData('cbsocials_posts', MOCK_POSTS),
+  stories: loadStoredData('cbsocials_stories', SEED_STORIES),
   storySearch: '',
-  collapsedGroups: new Set(JSON.parse(localStorage.getItem('cbsocials_collapsed_groups') || '[]')),
+  collapsedGroups: new Set(loadStoredData('cbsocials_collapsed_groups', [])),
   activeHubTab: 'stories',
-  copyLibrary: JSON.parse(localStorage.getItem('cbsocials_copy_library')) || MOCK_COPY_LIBRARY,
+  copyLibrary: loadStoredData('cbsocials_copy_library', MOCK_COPY_LIBRARY),
   activeCopyFilter: 'all',
   activeDay: 'Mon',
   searchQuery: '',
@@ -151,17 +166,26 @@ let appState = {
   selectedPreviewPostId: null,
   activePreviewPlatform: 'twitter',
   optimizerMode: 'industry',
-  importedAnalytics: JSON.parse(localStorage.getItem('cbsocials_analytics')) || []
+  importedAnalytics: loadStoredData('cbsocials_analytics', [])
 };
 
 // Save state to LocalStorage
 function saveState() {
-  localStorage.setItem('cbsocials_posts', JSON.stringify(appState.posts));
-  updateStats();
+  try {
+    localStorage.setItem('cbsocials_posts', JSON.stringify(appState.posts));
+    updateStats();
+  } catch (e) {
+    console.error('Error saving cbsocials_posts:', e);
+  }
 }
 
 function saveStories() {
-  localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
+  try {
+    localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
+    console.log('Stories saved to localStorage. Total:', appState.stories.length);
+  } catch (e) {
+    console.error('Error saving cbsocials_stories:', e);
+  }
 }
 
 function saveCopyLibrary() {
