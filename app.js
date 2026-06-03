@@ -1079,8 +1079,8 @@ function initEvents() {
   elements.storyForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const id = elements.storyFormId.value;
-    const txDateInput = elements.storyFormTxdate.value.trim().toUpperCase();
-    const txDate = txDateInput === '' ? 'TBC' : txDateInput;
+    const txDateInput = elements.storyFormTxdate.value;
+    const txDate = txDateInput ? formatDateToStandard(txDateInput) : 'TBC';
     const title = elements.storyFormTitle.value.trim().toUpperCase();
     const legalNote = elements.storyFormLegal.value.trim();
     const copyVersions = [];
@@ -1584,6 +1584,31 @@ function parseTxDate(dateStr) {
   } catch(e) { return 0; }
 }
 
+function formatDateToStandard(dateStr) {
+  if (!dateStr) return 'TBC';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const year = parts[0];
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  return `${day} ${months[monthIdx]} ${year}`;
+}
+
+function formatStandardToInputDate(stdDateStr) {
+  if (!stdDateStr || stdDateStr === 'TBC') return '';
+  const parts = stdDateStr.trim().toUpperCase().split(/\s+/);
+  if (parts.length !== 3) return '';
+  const day = parts[0].padStart(2, '0');
+  const monthStr = parts[1];
+  const year = parts[2];
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const monthIdx = months.indexOf(monthStr);
+  if (monthIdx === -1) return '';
+  const month = String(monthIdx + 1).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // ── Story Modal ───────────────────────────────────────────────────────────────
 function openStoryModal(id = null) {
   elements.storyFormId.value = '';
@@ -1596,7 +1621,7 @@ function openStoryModal(id = null) {
     const story = appState.stories.find(s => s.id === id);
     if (story) {
       elements.storyFormId.value = story.id;
-      elements.storyFormTxdate.value = story.txDate;
+      elements.storyFormTxdate.value = formatStandardToInputDate(story.txDate);
       elements.storyFormTitle.value = story.title;
       elements.storyFormLegal.value = story.legalNote || '';
       (story.copyVersions || []).forEach(v => addCopyVersionField(v));
