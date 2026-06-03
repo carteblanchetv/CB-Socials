@@ -1965,11 +1965,11 @@ textarea {
   background: linear-gradient(90deg, rgba(235, 160, 0, 0.08) 0%, transparent 100%) !important;
 }
 
-/* Active Broadcast Week Styles */
+/* Active Broadcast Week Styles (Green) */
 .story-date-header--active-week {
-  border-left: 2px solid var(--color-cyan) !important;
-  background: linear-gradient(90deg, rgba(0, 185, 255, 0.15) 0%, transparent 100%) !important;
-  box-shadow: inset 0 0 10px rgba(0, 185, 255, 0.05);
+  border-left: 2px solid var(--color-success) !important;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, transparent 100%) !important;
+  box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.03);
 }
 
 .active-week-badge {
@@ -1977,11 +1977,22 @@ textarea {
   font-weight: 800;
   text-transform: uppercase;
   color: #fff;
-  background: var(--color-cyan);
+  background: var(--color-success);
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
   letter-spacing: 0.05em;
-  box-shadow: 0 2px 6px rgba(0, 185, 255, 0.3);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+/* Light mode overrides for active week readability */
+[data-theme="light"] .active-week-badge {
+  color: #064e3b !important; /* Dark green for readability */
+  background: rgba(16, 185, 129, 0.22) !important;
+  box-shadow: none;
+}
+
+[data-theme="light"] .story-date-header--active-week {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%) !important;
 }
 
 
