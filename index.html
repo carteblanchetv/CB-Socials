@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CB Socials // Content Management Dashboard</title>
+  <meta name="description" content="A premium glassmorphic content management and posting schedule optimizer dashboard styled for CB Socials.">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Mammoth.js for client-side DOCX Word file parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="glow-bg bg-purple"></div>
+  <div class="glow-bg bg-cyan"></div>
+  <div class="glow-bg bg-blue"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="logo-text">CB<span>socials</span></span>
+      </div>
+      <div class="quick-stats">
+        <div class="stat-item">
+          <span class="stat-value" id="count-total">0</span>
+          <span class="stat-label">Total Drafts</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value text-scheduled" id="count-scheduled">0</span>
+          <span class="stat-label">Scheduled</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value text-published" id="count-published">0</span>
+          <span class="stat-label">Published</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme-toggle" class="btn btn-icon" aria-label="Toggle Theme">
+          <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <button id="btn-new-post" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Create Post</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid Workspace -->
+    <main class="dashboard-grid">
+      
+      <!-- Panel 1: Scheduler & Time suggestions -->
+      <section class="grid-panel panel-scheduler" id="panel-scheduler">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Posting Schedule Optimizer</h2>
+            <p class="panel-subtitle">Engage your audience at peak activity times</p>
+          </div>
+        </div>
+
+        <!-- Optimization Data Mode Selector -->
+        <div class="optimizer-mode-container">
+          <div class="mode-toggle-glass">
+            <button class="mode-btn active" id="mode-industry">Benchmarks</button>
+            <button class="mode-btn" id="mode-custom">My Analytics</button>
+          </div>
+        </div>
+
+        <!-- Weekly Tabs -->
+        <div class="day-tabs-container">
+          <div class="day-tabs" id="day-tabs-list">
+            <button class="day-tab active" data-day="Mon">Mon</button>
+            <button class="day-tab" data-day="Tue">Tue</button>
+            <button class="day-tab" data-day="Wed">Wed</button>
+            <button class="day-tab" data-day="Thu">Thu</button>
+            <button class="day-tab" data-day="Fri">Fri</button>
+            <button class="day-tab" data-day="Sat">Sat</button>
+            <button class="day-tab" data-day="Sun">Sun</button>
+          </div>
+        </div>
+
+        <!-- Suggestions Grid -->
+        <div class="suggestions-grid" id="suggestions-grid">
+          <!-- Dynamically populated suggestions cards -->
+        </div>
+
+        <!-- CSV Dropzone -->
+        <div class="csv-upload-zone" id="csv-dropzone">
+          <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+          <div class="csv-upload-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <span class="csv-upload-text">Drop analytics CSV or <strong style="color: var(--primary); cursor: pointer;" id="csv-browse-trigger">browse</strong></span>
+          <span class="csv-upload-subtitle">Supports X, TikTok, YouTube & Meta exports</span>
+        </div>
+
+        <!-- Copy Library -->
+        <div class="copy-library-container" id="copy-library-container">
+          <div class="copy-library-header">
+            <div>
+              <h3 class="copy-library-title">Copy Library</h3>
+              <p class="copy-library-subtitle">Your living bank of social copy</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-add-copy-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Copy
+            </button>
+          </div>
+
+          <!-- Category filter pills -->
+          <div class="copy-lib-filters" id="copy-lib-filters">
+            <button class="copy-filter-pill active" data-filter="all">All</button>
+            <button class="copy-filter-pill" data-filter="General">General</button>
+            <button class="copy-filter-pill" data-filter="Hooks">Hooks</button>
+            <button class="copy-filter-pill" data-filter="CTAs">CTAs</button>
+            <button class="copy-filter-pill" data-filter="Bios">Bios</button>
+            <button class="copy-filter-pill" data-filter="Campaign">Campaign</button>
+          </div>
+
+          <!-- Copy items list -->
+          <div class="copy-library-list" id="copy-library-list">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Empty state -->
+          <div class="copy-library-empty" id="copy-library-empty" style="display:none;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <p>No copy yet. Hit <strong>Add Copy</strong> to start your library.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 2: Stories Copy Hub -->
+      <section class="grid-panel panel-copy-hub" id="panel-copy-hub">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Stories Copy Hub</h2>
+            <p class="panel-subtitle">TX dates, story copy &amp; legal notes</p>
+          </div>
+          <div class="hub-tab-switcher">
+            <button class="hub-tab active" id="hub-tab-stories" data-hub="stories">Stories</button>
+            <button class="hub-tab" id="hub-tab-drafts" data-hub="drafts">Post Drafts</button>
+          </div>
+        </div>
+
+        <!-- ── STORIES TAB ─────────────────────────────────── -->
+        <div id="hub-panel-stories">
+          <div class="toolbar-glass" style="margin-bottom: 0.75rem;">
+            <div class="search-box">
+              <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="story-search-input" placeholder="Search stories or copy...">
+            </div>
+            <div class="filter-controls" style="gap:0.4rem; flex-shrink:0;">
+              <button class="btn btn-outline btn-sm" id="btn-add-story">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Story
+              </button>
+              <button class="btn btn-outline btn-sm" id="btn-import-docx" title="Import DOCX">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Import DOCX
+              </button>
+              <input type="file" id="docx-file-input" accept=".docx" style="display:none;">
+            </div>
+          </div>
+
+          <div class="stories-hub-list" id="stories-hub-list">
+            <!-- Dynamically populated date groups -->
+          </div>
+
+          <div class="copy-library-empty" id="stories-hub-empty" style="display:none;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>No stories yet. Click <strong>Add Story</strong> or <strong>Import DOCX</strong> to get started.</p>
+          </div>
+        </div>
+
+        <!-- ── DRAFTS TAB ──────────────────────────────────── -->
+        <div id="hub-panel-drafts" style="display:none;">
+          <div class="toolbar-glass">
+            <div class="search-box">
+              <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="search-input" placeholder="Search copy drafts...">
+            </div>
+            <div class="filter-controls">
+              <select id="filter-platform" class="glass-select">
+                <option value="all">All Platforms</option>
+                <option value="bluesky">BlueSky</option>
+                <option value="facebook">Facebook</option>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="twitter">X</option>
+                <option value="youtube">YouTube</option>
+              </select>
+              <select id="filter-status" class="glass-select">
+                <option value="all">All Statuses</option>
+                <option value="Draft">Draft</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Published">Published</option>
+              </select>
+            </div>
+          </div>
+          <div class="drafts-list-container">
+            <div class="drafts-grid" id="drafts-grid"></div>
+            <div class="empty-state" id="drafts-empty-state" style="display: none;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <h3>No copy matches your criteria</h3>
+              <p>Create a new draft post or adjust your filters to view posts.</p>
+              <button class="btn btn-outline" id="btn-empty-create">Create a Post</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
+    </main>
+  </div>
+
+  <!-- Modal overlay: Create / Edit post -->
+  <div class="modal-overlay" id="post-modal" style="display: none;">
+    <div class="modal-glass">
+      <div class="modal-header">
+        <h3 id="modal-title">Create Copy Draft</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-modal-close" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="post-form">
+        <input type="hidden" id="form-post-id">
+        
+        <div class="form-group">
+          <label for="form-post-title">Title / Campaign</label>
+          <input type="text" id="form-post-title" required placeholder="e.g. Summer Promo launch, Product Update">
+        </div>
+
+        <div class="form-group">
+          <label>Target Social Platforms (Select all that apply)</label>
+          <div class="platform-checkboxes">
+            <label class="platform-checkbox-wrapper bluesky-theme">
+              <input type="checkbox" name="form-platforms" value="bluesky" checked>
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">BlueSky</span>
+            </label>
+            <label class="platform-checkbox-wrapper facebook-theme">
+              <input type="checkbox" name="form-platforms" value="facebook">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">Facebook</span>
+            </label>
+            <label class="platform-checkbox-wrapper instagram-theme">
+              <input type="checkbox" name="form-platforms" value="instagram">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">Instagram</span>
+            </label>
+            <label class="platform-checkbox-wrapper tiktok-theme">
+              <input type="checkbox" name="form-platforms" value="tiktok">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">TikTok</span>
+            </label>
+            <label class="platform-checkbox-wrapper x-theme">
+              <input type="checkbox" name="form-platforms" value="twitter">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">X</span>
+            </label>
+            <label class="platform-checkbox-wrapper youtube-theme">
+              <input type="checkbox" name="form-platforms" value="youtube">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">YouTube</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="form-post-date">Schedule Date</label>
+            <input type="date" id="form-post-date" required>
+          </div>
+          <div class="form-group half-width">
+            <label for="form-post-time">Schedule Time</label>
+            <input type="time" id="form-post-time" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="form-post-status">Status</label>
+            <select id="form-post-status" class="glass-select">
+              <option value="Draft">Draft</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Published">Published</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="copy-label-container">
+            <label for="form-post-text">Social Copy</label>
+            <span class="char-counter" id="form-char-count">0 characters</span>
+          </div>
+          <textarea id="form-post-text" required placeholder="Write your post content here... Links, tags, emojis welcome!"></textarea>
+          <div class="limits-warnings" id="limits-warnings">
+            <!-- Warnings loaded dynamically as user types -->
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-modal-save">Save Draft</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Copy Library Add/Edit Modal -->
+  <div class="modal-overlay" id="copy-item-modal" style="display: none;">
+    <div class="modal-glass" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="copy-item-modal-title">Add Copy</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-copy-item-modal-close" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="copy-item-form">
+        <input type="hidden" id="copy-item-form-id">
+
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="copy-item-form-title">Title / Label</label>
+            <input type="text" id="copy-item-form-title" required placeholder="e.g. June Campaign Hook">
+          </div>
+          <div class="form-group half-width">
+            <label for="copy-item-form-category">Category</label>
+            <select id="copy-item-form-category" class="glass-select">
+              <option value="General">General</option>
+              <option value="Hooks">Hooks</option>
+              <option value="CTAs">CTAs</option>
+              <option value="Bios">Bios</option>
+              <option value="Campaign">Campaign</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="copy-label-container">
+            <label for="copy-item-form-text">Copy Text</label>
+            <span class="char-counter" id="copy-item-char-count">0 characters</span>
+          </div>
+          <textarea id="copy-item-form-text" required placeholder="Write your copy here..." style="min-height: 140px;"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Target Platforms <span style="font-size:0.7rem; color: var(--text-muted);">(optional — for reference)</span></label>
+          <div class="platform-checkboxes">
+            <label class="platform-checkbox-wrapper bluesky-theme">
+              <input type="checkbox" name="copy-item-platforms" value="bluesky">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">BlueSky</span>
+            </label>
+            <label class="platform-checkbox-wrapper facebook-theme">
+              <input type="checkbox" name="copy-item-platforms" value="facebook">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">Facebook</span>
+            </label>
+            <label class="platform-checkbox-wrapper instagram-theme">
+              <input type="checkbox" name="copy-item-platforms" value="instagram">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">Instagram</span>
+            </label>
+            <label class="platform-checkbox-wrapper tiktok-theme">
+              <input type="checkbox" name="copy-item-platforms" value="tiktok">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">TikTok</span>
+            </label>
+            <label class="platform-checkbox-wrapper x-theme">
+              <input type="checkbox" name="copy-item-platforms" value="twitter">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">X</span>
+            </label>
+            <label class="platform-checkbox-wrapper youtube-theme">
+              <input type="checkbox" name="copy-item-platforms" value="youtube">
+              <span class="checkbox-custom"></span>
+              <span class="platform-name">YouTube</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-copy-item-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-copy-item-save">Save Copy</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Story Add/Edit Modal -->
+  <div class="modal-overlay" id="story-modal" style="display:none;">
+    <div class="modal-glass" style="max-width:580px; max-height:90vh; overflow-y:auto;">
+      <div class="modal-header">
+        <h3 id="story-modal-title">Add Story</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-story-modal-close" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="story-form">
+        <input type="hidden" id="story-form-id">
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="story-form-txdate">TX Broadcast Date</label>
+            <input type="text" id="story-form-txdate" required placeholder="e.g. 31 MAY 2026">
+          </div>
+          <div class="form-group half-width">
+            <label for="story-form-title">Story Title</label>
+            <input type="text" id="story-form-title" required placeholder="e.g. WRATH OF THE BREEDE">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="story-form-legal">
+            Legal Note <span style="font-size:0.7rem;color:var(--text-muted);">(optional — visible as a warning to all users)</span>
+          </label>
+          <input type="text" id="story-form-legal" placeholder="e.g. No mention of [name] anywhere, even filenames">
+        </div>
+        <div class="form-group">
+          <div class="copy-label-container">
+            <label>Copy Versions</label>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-add-copy-version">+ Add Version</button>
+          </div>
+          <div id="story-copy-versions-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.4rem;">
+            <!-- Dynamic copy version textareas -->
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-story-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Story</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast-notification" id="toast">
+    <span class="toast-message">Copied to clipboard!</span>
+  </div>
+
+  <!-- Core App Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
