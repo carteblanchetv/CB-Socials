@@ -216,7 +216,9 @@ let appState = {
   selectedPreviewPostId: null,
   activePreviewPlatform: 'twitter',
   optimizerMode: 'industry',
-  importedAnalytics: loadStoredData('cbsocials_analytics', [])
+  importedAnalytics: loadStoredData('cbsocials_analytics', []),
+  calendarNotes: loadStoredData('cbsocials_calendar_notes', []),
+  currentCalendarDate: new Date()
 };
 
 // Save state to LocalStorage
@@ -344,8 +346,22 @@ const elements = {
   btnAddCopyVersion: document.getElementById('btn-add-copy-version'),
   hubTabStories: document.getElementById('hub-tab-stories'),
   hubTabDrafts: document.getElementById('hub-tab-drafts'),
+  hubTabCalendar: document.getElementById('hub-tab-calendar'),
   hubPanelStories: document.getElementById('hub-panel-stories'),
   hubPanelDrafts: document.getElementById('hub-panel-drafts'),
+  hubPanelCalendar: document.getElementById('hub-panel-calendar'),
+  btnCalendarPrev: document.getElementById('btn-calendar-prev'),
+  btnCalendarNext: document.getElementById('btn-calendar-next'),
+  calendarMonthTitle: document.getElementById('calendar-month-title'),
+  calendarGrid: document.getElementById('calendar-grid'),
+  calendarNoteModal: document.getElementById('calendar-note-modal'),
+  calendarNoteModalTitle: document.getElementById('calendar-note-modal-title'),
+  btnCalendarNoteClose: document.getElementById('btn-calendar-note-close'),
+  btnCalendarNoteCancel: document.getElementById('btn-calendar-note-cancel'),
+  btnCalendarNoteDelete: document.getElementById('btn-calendar-note-delete'),
+  calendarNoteForm: document.getElementById('calendar-note-form'),
+  calendarNoteDate: document.getElementById('calendar-note-date'),
+  calendarNoteText: document.getElementById('calendar-note-text'),
 
   // Help Guide Modal
   btnHelpToggle: document.getElementById('btn-help-toggle'),
@@ -1148,14 +1164,21 @@ function initEvents() {
 
   // ── Stories Hub Events ───────────────────────────────────────────────────
   // Hub tab switching
-  [elements.hubTabStories, elements.hubTabDrafts].forEach(tab => {
+  [elements.hubTabStories, elements.hubTabDrafts, elements.hubTabCalendar].forEach(tab => {
     tab.addEventListener('click', () => {
       const hub = tab.dataset.hub;
       appState.activeHubTab = hub;
       elements.hubTabStories.classList.toggle('active', hub === 'stories');
       elements.hubTabDrafts.classList.toggle('active', hub === 'drafts');
+      elements.hubTabCalendar.classList.toggle('active', hub === 'calendar');
+      
       elements.hubPanelStories.style.display = hub === 'stories' ? 'block' : 'none';
       elements.hubPanelDrafts.style.display = hub === 'drafts' ? 'block' : 'none';
+      elements.hubPanelCalendar.style.display = hub === 'calendar' ? 'block' : 'none';
+      
+      if (hub === 'calendar') {
+        renderCalendar();
+      }
     });
   });
 
@@ -1180,6 +1203,7 @@ function initEvents() {
   elements.btnStoryCancel.addEventListener('click', closeStoryModal);
   window.addEventListener('click', (e) => {
     if (e.target === elements.storyModal) closeStoryModal();
+    if (e.target === elements.calendarNoteModal) closeCalendarNoteModal();
   });
 
   // Add copy version textarea
@@ -1383,6 +1407,42 @@ function initEvents() {
       await initAuth();
     }
   });
+
+  // Calendar Events
+  if (elements.btnCalendarPrev) {
+    elements.btnCalendarPrev.addEventListener('click', () => {
+      appState.currentCalendarDate.setMonth(appState.currentCalendarDate.getMonth() - 1);
+      renderCalendar();
+    });
+  }
+  if (elements.btnCalendarNext) {
+    elements.btnCalendarNext.addEventListener('click', () => {
+      appState.currentCalendarDate.setMonth(appState.currentCalendarDate.getMonth() + 1);
+      renderCalendar();
+    });
+  }
+  if (elements.calendarNoteForm) {
+    elements.calendarNoteForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const dateStr = elements.calendarNoteDate.value;
+      const text = elements.calendarNoteText.value;
+      saveCalendarNote(dateStr, text);
+      closeCalendarNoteModal();
+    });
+  }
+  if (elements.btnCalendarNoteCancel) {
+    elements.btnCalendarNoteCancel.addEventListener('click', closeCalendarNoteModal);
+  }
+  if (elements.btnCalendarNoteClose) {
+    elements.btnCalendarNoteClose.addEventListener('click', closeCalendarNoteModal);
+  }
+  if (elements.btnCalendarNoteDelete) {
+    elements.btnCalendarNoteDelete.addEventListener('click', () => {
+      const dateStr = elements.calendarNoteDate.value;
+      saveCalendarNote(dateStr, '');
+      closeCalendarNoteModal();
+    });
+  }
 }
 
 // ── Copy Library Modal Helpers ────────────────────────────────────────────────
@@ -1905,6 +1965,151 @@ function formatStandardToInputDate(stdDateStr) {
   return `${year}-${month}-${day}`;
 }
 
+// ── Calendar Notes ────────────────────────────────────────────────────────────
+let calendarRealtimeListener = null;
+
+function setupRealtimeCalendarNotesSubscription() {
+  if (!firestoreDb || calendarRealtimeListener) return;
+  
+  calendarRealtimeListener = firestoreDb
+    .collection('calendar_notes')
+    .onSnapshot((snapshot) => {
+      const updatedNotes = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        updatedNotes.push({
+          id: doc.id,
+          date: data.date,
+          text: data.text,
+          updatedAt: data.updatedAt
+        });
+      });
+      
+      appState.calendarNotes = updatedNotes;
+      localStorage.setItem('cbsocials_calendar_notes', JSON.stringify(appState.calendarNotes));
+      renderCalendar();
+      console.log('Firebase Firestore calendar notes synchronized. Total:', updatedNotes.length);
+    }, (err) => {
+      console.error('Firebase Firestore calendar notes realtime sync error:', err);
+    });
+}
+
+async function saveCalendarNote(date, text) {
+  const existingIdx = appState.calendarNotes.findIndex(n => n.date === date);
+  const updatedAt = new Date().toISOString();
+  
+  if (text.trim() === '') {
+    if (existingIdx !== -1) {
+      appState.calendarNotes.splice(existingIdx, 1);
+    }
+    if (firebaseAuth && firestoreDb && firebaseAuth.currentUser) {
+      try {
+        await firestoreDb.collection('calendar_notes').doc(date).delete();
+      } catch (e) {
+        console.error('Failed to delete calendar note in Firestore:', e);
+      }
+    }
+  } else {
+    const noteObj = {
+      id: date,
+      date,
+      text: text.trim(),
+      updatedAt
+    };
+    if (existingIdx !== -1) {
+      appState.calendarNotes[existingIdx] = noteObj;
+    } else {
+      appState.calendarNotes.push(noteObj);
+    }
+    
+    if (firebaseAuth && firestoreDb && firebaseAuth.currentUser) {
+      try {
+        await firestoreDb.collection('calendar_notes').doc(date).set({
+          date,
+          text: text.trim(),
+          updatedAt,
+          userId: firebaseAuth.currentUser.uid
+        });
+      } catch (e) {
+        console.error('Failed to save calendar note in Firestore:', e);
+      }
+    }
+  }
+  
+  localStorage.setItem('cbsocials_calendar_notes', JSON.stringify(appState.calendarNotes));
+  renderCalendar();
+}
+
+function renderCalendar() {
+  if (!elements.calendarGrid) return;
+  
+  const d = appState.currentCalendarDate;
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  
+  const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  elements.calendarMonthTitle.textContent = `${monthNames[month]} ${year}`;
+  
+  elements.calendarGrid.innerHTML = '';
+  
+  const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  
+  for (let i = 0; i < firstDayIndex; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'calendar-day empty';
+    elements.calendarGrid.appendChild(emptyCell);
+  }
+  
+  const today = new Date();
+  for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+    const dayCell = document.createElement('div');
+    dayCell.className = 'calendar-day';
+    
+    const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === dayNum;
+    if (isToday) {
+      dayCell.classList.add('today');
+    }
+    
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+    const note = appState.calendarNotes.find(n => n.date === dateStr);
+    
+    let noteHtml = '';
+    if (note && note.text) {
+      dayCell.classList.add('calendar-day-has-note');
+      noteHtml = `<div class="calendar-day-note-preview" title="${escapeHtml(note.text)}">${escapeHtml(note.text)}</div>`;
+    }
+    
+    dayCell.innerHTML = `
+      <div class="calendar-day-num">${dayNum}</div>
+      ${noteHtml}
+    `;
+    
+    dayCell.addEventListener('click', () => {
+      openCalendarNoteModal(dateStr, note ? note.text : '');
+    });
+    
+    elements.calendarGrid.appendChild(dayCell);
+  }
+}
+
+function openCalendarNoteModal(dateStr, currentText) {
+  const parts = dateStr.split('-');
+  const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  const humanDate = `${parseInt(parts[2], 10)} ${months[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+  
+  elements.calendarNoteModalTitle.textContent = `Upload Notes for ${humanDate}`;
+  elements.calendarNoteDate.value = dateStr;
+  elements.calendarNoteText.value = currentText;
+  
+  elements.calendarNoteModal.style.display = 'flex';
+  elements.calendarNoteText.focus();
+}
+
+function closeCalendarNoteModal() {
+  elements.calendarNoteModal.style.display = 'none';
+}
+
 // ── Story Modal ───────────────────────────────────────────────────────────────
 function openStoryModal(id = null) {
   elements.storyFormId.value = '';
@@ -2419,6 +2624,10 @@ async function initAuth() {
         realtimeListener();
         realtimeListener = null;
       }
+      if (calendarRealtimeListener) {
+        calendarRealtimeListener();
+        calendarRealtimeListener = null;
+      }
     } else {
       // User is logged in, hide auth overlay and set status to connected
       elements.authOverlay.style.display = 'none';
@@ -2430,6 +2639,7 @@ async function initAuth() {
       
       // Listen to realtime updates
       setupRealtimeSubscription();
+      setupRealtimeCalendarNotesSubscription();
     }
   });
 }
