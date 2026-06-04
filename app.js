@@ -1187,7 +1187,7 @@ function initEvents() {
     e.preventDefault();
     const id = elements.storyFormId.value;
     const txDateInput = elements.storyFormTxdate.value;
-    const txDate = txDateInput ? formatDateToStandard(txDateInput) : 'TBC';
+    const txDate = txDateInput ? normalizeDateString(formatDateToStandard(txDateInput)) : 'TBC';
     const title = elements.storyFormTitle.value.trim().toUpperCase();
     const legalNote = elements.storyFormLegal.value.trim();
     const copyVersions = [];
@@ -1583,7 +1583,7 @@ function renderStoriesHub() {
   // Group by TX date
   const groups = {};
   sortedStories.forEach(s => {
-    const key = s.txDate ? s.txDate.trim() : 'TBC';
+    const key = s.txDate ? normalizeDateString(s.txDate) : 'TBC';
     if (!groups[key]) groups[key] = [];
     groups[key].push(s);
   });
@@ -1859,6 +1859,20 @@ function formatDateToStandard(dateStr) {
   return `${day} ${months[monthIdx]} ${year}`;
 }
 
+function normalizeDateString(dateStr) {
+  if (!dateStr) return 'TBC';
+  const clean = dateStr.toUpperCase().trim();
+  if (clean === 'TBC' || clean === 'UNLINKED' || clean === '') return 'TBC';
+  const timestamp = parseTxDate(dateStr);
+  if (timestamp === 0) return dateStr;
+  const d = new Date(timestamp);
+  const day = d.getDate();
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
 function formatStandardToInputDate(stdDateStr) {
   if (!stdDateStr || stdDateStr === 'TBC') return '';
   const parts = stdDateStr.trim().toUpperCase().split(/\s+/);
@@ -2031,7 +2045,7 @@ async function parseDocxToStories(arrayBuffer) {
     if (SKIP.some(s => p.text.includes(s))) return;
     if (isTxDate(p)) {
       if (currentStory) stories.push(currentStory);
-      currentDate = p.text;
+      currentDate = normalizeDateString(p.text);
       currentStory = null;
     } else if (isStoryTitle(p) && currentDate) {
       if (currentStory) stories.push(currentStory);
