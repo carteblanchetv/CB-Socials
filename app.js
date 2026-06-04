@@ -346,10 +346,8 @@ const elements = {
   btnAddCopyVersion: document.getElementById('btn-add-copy-version'),
   hubTabStories: document.getElementById('hub-tab-stories'),
   hubTabDrafts: document.getElementById('hub-tab-drafts'),
-  hubTabCalendar: document.getElementById('hub-tab-calendar'),
   hubPanelStories: document.getElementById('hub-panel-stories'),
   hubPanelDrafts: document.getElementById('hub-panel-drafts'),
-  hubPanelCalendar: document.getElementById('hub-panel-calendar'),
   btnCalendarPrev: document.getElementById('btn-calendar-prev'),
   btnCalendarNext: document.getElementById('btn-calendar-next'),
   calendarMonthTitle: document.getElementById('calendar-month-title'),
@@ -1175,21 +1173,15 @@ function initEvents() {
 
   // ── Stories Hub Events ───────────────────────────────────────────────────
   // Hub tab switching
-  [elements.hubTabStories, elements.hubTabDrafts, elements.hubTabCalendar].forEach(tab => {
+  [elements.hubTabStories, elements.hubTabDrafts].forEach(tab => {
     tab.addEventListener('click', () => {
       const hub = tab.dataset.hub;
       appState.activeHubTab = hub;
       elements.hubTabStories.classList.toggle('active', hub === 'stories');
       elements.hubTabDrafts.classList.toggle('active', hub === 'drafts');
-      elements.hubTabCalendar.classList.toggle('active', hub === 'calendar');
       
       elements.hubPanelStories.style.display = hub === 'stories' ? 'block' : 'none';
       elements.hubPanelDrafts.style.display = hub === 'drafts' ? 'block' : 'none';
-      elements.hubPanelCalendar.style.display = hub === 'calendar' ? 'block' : 'none';
-      
-      if (hub === 'calendar') {
-        renderCalendar();
-      }
     });
   });
 
@@ -2915,6 +2907,7 @@ function init() {
   renderDrafts();
   renderCopyLibrary();
   renderStoriesHub();
+  renderCalendar();
   updateStats();
   
   // Start by previewing the first post if any exists
