@@ -2156,5 +2156,93 @@ textarea {
   box-shadow: 0 0 4px var(--primary-hover);
 }
 
+/* Push to Calendar Modal row styling */
+.push-calendar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  padding: 0.6rem;
+  border-radius: 6px;
+}
+.push-calendar-platform-badge {
+  min-width: 80px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+}
+.push-calendar-inputs {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+}
+.push-calendar-inputs input {
+  flex: 1;
+  font-size: 0.78rem;
+  padding: 0.4rem;
+  border-radius: 4px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+}
+
+/* Scheduled Post previews inside calendar cells */
+.calendar-day-post-preview {
+  font-size: 0.62rem;
+  line-height: 1.25;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  border-left: 2px solid var(--primary);
+  padding: 0.18rem 0.35rem;
+  border-radius: 4px;
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.calendar-day-post-preview:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-focus);
+}
+.calendar-day-post-preview .post-time {
+  font-weight: 700;
+  color: var(--primary-hover);
+  font-size: 0.58rem;
+}
+.calendar-day-post-preview .post-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calendar-day-post-preview .post-badges {
+  display: flex;
+  gap: 0.2rem;
+  margin-top: 0.15rem;
+}
+.calendar-post-badge {
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: #fff;
+  padding: 0.05rem 0.2rem;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+.calendar-post-badge.twitter { background: var(--color-twitter); }
+.calendar-post-badge.bluesky { background: var(--color-bluesky); }
+.calendar-post-badge.instagram { background: linear-gradient(45deg, var(--color-instagram-start), var(--color-instagram-end)); }
+.calendar-post-badge.facebook { background: var(--color-facebook); }
+.calendar-post-badge.tiktok { background: var(--color-tiktok); }
+.calendar-post-badge.youtube { background: var(--color-youtube); }
+
+
 
 

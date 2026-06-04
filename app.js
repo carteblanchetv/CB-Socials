@@ -363,6 +363,17 @@ const elements = {
   calendarNoteDate: document.getElementById('calendar-note-date'),
   calendarNoteText: document.getElementById('calendar-note-text'),
 
+  // Push to Calendar elements
+  pushCalendarModal: document.getElementById('push-calendar-modal'),
+  pushCalendarForm: document.getElementById('push-calendar-form'),
+  pushCalendarStoryId: document.getElementById('push-calendar-story-id'),
+  pushCalendarCvIdx: document.getElementById('push-calendar-cv-idx'),
+  pushCalendarCopyPreview: document.getElementById('push-calendar-copy-preview'),
+  pushCalendarPlatformsContainer: document.getElementById('push-calendar-platforms-container'),
+  btnPushCalendarSave: document.getElementById('btn-push-calendar-save'),
+  btnPushCalendarClose: document.getElementById('btn-push-calendar-close'),
+  btnPushCalendarCancel: document.getElementById('btn-push-calendar-cancel'),
+
   // Help Guide Modal
   btnHelpToggle: document.getElementById('btn-help-toggle'),
   helpModal: document.getElementById('help-modal'),
@@ -1204,10 +1215,57 @@ function initEvents() {
   window.addEventListener('click', (e) => {
     if (e.target === elements.storyModal) closeStoryModal();
     if (e.target === elements.calendarNoteModal) closeCalendarNoteModal();
+    if (e.target === elements.pushCalendarModal) closePushToCalendarModal();
   });
 
   // Add copy version textarea
   elements.btnAddCopyVersion.addEventListener('click', () => addCopyVersionField());
+
+  // Push to Calendar Modal Events
+  if (elements.pushCalendarForm) {
+    elements.pushCalendarForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const storyId = elements.pushCalendarStoryId.value;
+      const cvIdx = parseInt(elements.pushCalendarCvIdx.value, 10);
+      const story = appState.stories.find(s => s.id === storyId);
+      if (!story) return;
+      
+      const cv = story.copyVersions[cvIdx];
+      const text = getCopyVersionText(cv);
+      const taggedPlatforms = getCopyVersionPlatforms(cv);
+      
+      // For each platform, create a separate post/draft item
+      taggedPlatforms.forEach(plat => {
+        const dateVal = document.querySelector(`input[name="push-date-${plat}"]`).value;
+        const timeVal = document.querySelector(`input[name="push-time-${plat}"]`).value;
+        
+        const newPost = {
+          id: `post-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          title: `${story.title} (${plat.toUpperCase()})`,
+          text,
+          platforms: [plat],
+          scheduledDate: dateVal,
+          scheduledTime: timeVal,
+          status: 'Scheduled'
+        };
+        
+        appState.posts.unshift(newPost);
+      });
+      
+      saveState();
+      renderDrafts();
+      renderFeedSimulator();
+      renderCalendar();
+      closePushToCalendarModal();
+      showToast('Copy scheduled & added to Calendar!');
+    });
+  }
+  if (elements.btnPushCalendarClose) {
+    elements.btnPushCalendarClose.addEventListener('click', closePushToCalendarModal);
+  }
+  if (elements.btnPushCalendarCancel) {
+    elements.btnPushCalendarCancel.addEventListener('click', closePushToCalendarModal);
+  }
 
   // Story form submit
   elements.storyForm.addEventListener('submit', (e) => {
@@ -1774,8 +1832,8 @@ function renderStoriesHub() {
               <button class="btn-copy-lib-action btn-story-copy-version" data-id="${story.id}" data-idx="${i}" title="Copy to clipboard">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               </button>
-              <button class="btn-copy-lib-action btn-story-draft-version" data-id="${story.id}" data-idx="${i}" title="Push to draft">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <button class="btn-copy-lib-action btn-story-calendar-version" data-id="${story.id}" data-idx="${i}" title="Push to calendar">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               </button>
             </div>
           </div>
@@ -1816,26 +1874,16 @@ function renderStoriesHub() {
     });
   });
 
-  container.querySelectorAll('.btn-story-draft-version').forEach(btn => {
+  container.querySelectorAll('.btn-story-calendar-version').forEach(btn => {
     btn.addEventListener('click', () => {
       const story = appState.stories.find(s => s.id === btn.dataset.id);
       if (!story) return;
-      const text = getCopyVersionText(story.copyVersions[parseInt(btn.dataset.idx, 10)]);
-      const newPost = {
-        id: `post-${Date.now()}`,
-        title: story.title + ' (V' + (parseInt(btn.dataset.idx, 10) + 1) + ')',
-        text,
-        platforms: ['twitter'],
-        scheduledDate: new Date().toISOString().split('T')[0],
-        scheduledTime: '12:00',
-        status: 'Draft'
-      };
-      appState.posts.unshift(newPost);
-      appState.selectedPreviewPostId = newPost.id;
-      saveState();
-      renderDrafts();
-      renderFeedSimulator();
-      showToast(`"${story.title}" copy pushed to drafts!`);
+      const cvIdx = parseInt(btn.dataset.idx, 10);
+      const cv = story.copyVersions[cvIdx];
+      const text = getCopyVersionText(cv);
+      const taggedPlatforms = getCopyVersionPlatforms(cv);
+      
+      openPushToCalendarModal(story.id, cvIdx, text, taggedPlatforms);
     });
   });
 
@@ -2080,17 +2128,106 @@ function renderCalendar() {
       noteHtml = `<div class="calendar-day-note-preview" title="${escapeHtml(note.text)}">${escapeHtml(note.text)}</div>`;
     }
     
+    // Scheduled posts for this day
+    const dayPosts = appState.posts.filter(p => p.scheduledDate === dateStr);
+    let postsHtml = dayPosts.map(p => {
+      const badgesHtml = p.platforms.map(pl => {
+        let nameLetter = '';
+        if (pl === 'twitter') nameLetter = 'X';
+        else if (pl === 'bluesky') nameLetter = 'BS';
+        else if (pl === 'instagram') nameLetter = 'IG';
+        else if (pl === 'facebook') nameLetter = 'FB';
+        else if (pl === 'tiktok') nameLetter = 'TT';
+        else if (pl === 'youtube') nameLetter = 'YT';
+        return `<span class="calendar-post-badge ${pl}">${nameLetter}</span>`;
+      }).join('');
+      return `
+        <div class="calendar-day-post-preview" data-post-id="${p.id}" title="${escapeHtml(p.title)}: ${escapeHtml(p.text)}">
+          <span class="post-time">${p.scheduledTime || ''}</span>
+          <span class="post-title">${escapeHtml(p.title)}</span>
+          <div class="post-badges">${badgesHtml}</div>
+        </div>
+      `;
+    }).join('');
+    
     dayCell.innerHTML = `
       <div class="calendar-day-num">${dayNum}</div>
       ${noteHtml}
+      <div class="calendar-day-posts" style="display:flex; flex-direction:column; gap:0.2rem; width:100%; margin-top:0.25rem;">
+        ${postsHtml}
+      </div>
     `;
     
-    dayCell.addEventListener('click', () => {
+    dayCell.addEventListener('click', (e) => {
+      const postCard = e.target.closest('.calendar-day-post-preview');
+      if (postCard) {
+        e.stopPropagation();
+        openEditPostModal(postCard.dataset.postId);
+        return;
+      }
       openCalendarNoteModal(dateStr, note ? note.text : '');
     });
     
     elements.calendarGrid.appendChild(dayCell);
   }
+}
+
+function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms) {
+  elements.pushCalendarStoryId.value = storyId;
+  elements.pushCalendarCvIdx.value = cvIdx;
+  elements.pushCalendarCopyPreview.textContent = text;
+  
+  const container = elements.pushCalendarPlatformsContainer;
+  container.innerHTML = '';
+  
+  if (!taggedPlatforms || taggedPlatforms.length === 0) {
+    container.innerHTML = `
+      <div style="font-size:0.75rem; color:var(--color-warning); padding:0.5rem; border:1px dashed var(--color-warning); border-radius:4px; text-align:center;">
+        No platforms are tagged on this copy version yet. Close this modal and click the platform badges (X, BS, IG, etc.) next to the text to tag platforms first!
+      </div>
+    `;
+    elements.btnPushCalendarSave.disabled = true;
+  } else {
+    elements.btnPushCalendarSave.disabled = false;
+    
+    const story = appState.stories.find(s => s.id === storyId);
+    let defaultDate = new Date().toISOString().split('T')[0];
+    if (story && story.txDate && story.txDate !== 'TBC') {
+      const parsedTime = parseTxDate(story.txDate);
+      if (parsedTime > 0) {
+        defaultDate = new Date(parsedTime).toISOString().split('T')[0];
+      }
+    }
+    
+    taggedPlatforms.forEach(plat => {
+      const config = PLATFORMS_CONFIG[plat];
+      const platRow = document.createElement('div');
+      platRow.className = 'push-calendar-row';
+      
+      let nameLetter = '';
+      if (plat === 'twitter') nameLetter = 'X';
+      else if (plat === 'bluesky') nameLetter = 'BS';
+      else if (plat === 'instagram') nameLetter = 'IG';
+      else if (plat === 'facebook') nameLetter = 'FB';
+      else if (plat === 'tiktok') nameLetter = 'TT';
+      else if (plat === 'youtube') nameLetter = 'YT';
+      
+      platRow.innerHTML = `
+        <span class="push-calendar-platform-badge" style="background: ${config.color}">${nameLetter} (${config.name})</span>
+        <div class="push-calendar-inputs">
+          <input type="date" name="push-date-${plat}" value="${defaultDate}" required>
+          <input type="time" name="push-time-${plat}" value="09:00" required>
+        </div>
+      `;
+      container.appendChild(platRow);
+    });
+  }
+  
+  elements.pushCalendarModal.style.display = 'flex';
+}
+
+function closePushToCalendarModal() {
+  elements.pushCalendarModal.style.display = 'none';
 }
 
 function openCalendarNoteModal(dateStr, currentText) {

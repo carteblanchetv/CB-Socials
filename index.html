@@ -503,6 +503,39 @@
     </div>
   </div>
 
+  <!-- Push to Calendar Modal -->
+  <div class="modal-overlay" id="push-calendar-modal" style="display:none;">
+    <div class="modal-glass" style="max-width:550px; max-height:85vh; overflow-y:auto;">
+      <div class="modal-header">
+        <h3 id="push-calendar-modal-title">Schedule Copy to Calendar</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-push-calendar-close" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="push-calendar-form">
+        <input type="hidden" id="push-calendar-story-id">
+        <input type="hidden" id="push-calendar-cv-idx">
+        
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Selected Copy Version</label>
+          <div id="push-calendar-copy-preview" style="font-size:0.8rem; padding:0.6rem; background:rgba(0,0,0,0.15); border:1px solid var(--border-glass); border-radius:6px; max-height:100px; overflow-y:auto; color:var(--text-secondary); white-space:pre-wrap;"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Platform Schedule Times</label>
+          <div id="push-calendar-platforms-container" style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.4rem;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top:1.5rem;">
+          <button type="button" class="btn btn-outline" id="btn-push-calendar-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-push-calendar-save">Confirm Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Help Guide Modal -->
   <div class="modal-overlay" id="help-modal" style="display:none;">
     <div class="modal-glass" style="max-width:680px; max-height:85vh; overflow-y:auto;">
