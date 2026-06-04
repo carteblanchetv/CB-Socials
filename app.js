@@ -346,6 +346,8 @@ const elements = {
   btnAddCopyVersion: document.getElementById('btn-add-copy-version'),
   hubTabStories: document.getElementById('hub-tab-stories'),
   hubTabDrafts: document.getElementById('hub-tab-drafts'),
+  btnStoriesCollapseAll: document.getElementById('btn-stories-collapse-all'),
+  btnStoriesExpandAll: document.getElementById('btn-stories-expand-all'),
   hubPanelStories: document.getElementById('hub-panel-stories'),
   hubPanelDrafts: document.getElementById('hub-panel-drafts'),
   btnCalendarPrev: document.getElementById('btn-calendar-prev'),
@@ -1191,6 +1193,23 @@ function initEvents() {
     renderStoriesHub();
   });
 
+  if (elements.btnStoriesCollapseAll) {
+    elements.btnStoriesCollapseAll.addEventListener('click', () => {
+      const txDates = [...new Set(appState.stories.map(s => s.txDate || 'TBC'))];
+      txDates.forEach(d => appState.collapsedGroups.add(d));
+      localStorage.setItem('cbsocials_collapsed_groups', JSON.stringify([...appState.collapsedGroups]));
+      renderStoriesHub();
+    });
+  }
+
+  if (elements.btnStoriesExpandAll) {
+    elements.btnStoriesExpandAll.addEventListener('click', () => {
+      appState.collapsedGroups.clear();
+      localStorage.setItem('cbsocials_collapsed_groups', JSON.stringify([]));
+      renderStoriesHub();
+    });
+  }
+
   // Add Story button
   elements.btnAddStory.addEventListener('click', () => openStoryModal());
 
@@ -1810,6 +1829,15 @@ function renderStoriesHub() {
           `;
         }).join('');
 
+        let warningsHtml = '';
+        cvPlatforms.forEach(plat => {
+          const limit = PLATFORMS_CONFIG[plat]?.limit;
+          if (limit && text.length > limit) {
+            const label = plat === 'twitter' ? 'X' : plat.toUpperCase();
+            warningsHtml += `<span class="copy-limit-badge" title="Exceeds ${PLATFORMS_CONFIG[plat].name} character limit of ${limit}">⚠️ ${label}</span>`;
+          }
+        });
+
         return `
           <div class="story-copy-row">
             <div class="story-copy-num">V${i + 1}</div>
@@ -1818,6 +1846,7 @@ function renderStoriesHub() {
               <div class="story-copy-platforms-row">
                 <span class="story-copy-platforms-label">Platforms:</span>
                 ${platformBadgesHtml}
+                ${warningsHtml}
               </div>
             </div>
             <div class="story-copy-actions">
@@ -2145,6 +2174,9 @@ function renderCalendar() {
     dayCell.innerHTML = `
       <div class="calendar-day-header">
         <div class="calendar-day-num">${dayNum}</div>
+        <button class="calendar-day-quick-add" title="Quick add upload note" data-date="${dateStr}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
       </div>
       ${noteHtml}
       <div class="calendar-day-posts" style="display:flex; flex-direction:column; gap:0.2rem; width:100%; margin-top:0.1rem;">
@@ -2153,6 +2185,12 @@ function renderCalendar() {
     `;
     
     dayCell.addEventListener('click', (e) => {
+      const quickAddBtn = e.target.closest('.calendar-day-quick-add');
+      if (quickAddBtn) {
+        e.stopPropagation();
+        openCalendarNoteModal(dateStr, note ? note.text : '');
+        return;
+      }
       const postCard = e.target.closest('.calendar-day-post-preview');
       if (postCard) {
         e.stopPropagation();
