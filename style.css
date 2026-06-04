@@ -1830,6 +1830,10 @@ textarea {
   border-radius: 7px;
   padding: 0.45rem 0.55rem;
   transition: background 0.15s;
+  cursor: grab;
+}
+.story-copy-row:active {
+  cursor: grabbing;
 }
 
 .story-copy-row:hover { background: rgba(255,255,255,0.06); }
@@ -2306,6 +2310,43 @@ textarea {
   align-items: center;
   gap: 0.15rem;
 }
+
+/* Calendar Filter Buttons */
+.calendar-filter-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 750;
+  padding: 0.15rem 0.45rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+.calendar-filter-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+}
+.calendar-filter-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+}
+.calendar-filter-btn.active[data-platform="twitter"] { background: #000; border-color: rgba(255,255,255,0.25); color: #fff; }
+.calendar-filter-btn.active[data-platform="bluesky"] { background: var(--color-bluesky); border-color: var(--color-bluesky); color: #fff; }
+.calendar-filter-btn.active[data-platform="instagram"] { background: linear-gradient(45deg, var(--color-instagram-start), var(--color-instagram-end)); border-color: var(--color-instagram-end); color: #fff; }
+.calendar-filter-btn.active[data-platform="facebook"] { background: var(--color-facebook); border-color: var(--color-facebook); color: #fff; }
+.calendar-filter-btn.active[data-platform="tiktok"] { background: var(--color-tiktok); border-color: var(--color-tiktok); color: #000; }
+.calendar-filter-btn.active[data-platform="youtube"] { background: var(--color-youtube); border-color: var(--color-youtube); color: #fff; }
+
+/* Calendar Drag & Drop dropzone styling */
+.calendar-day.drag-over {
+  background: rgba(0, 130, 195, 0.1) !important;
+  border: 1.5px dashed var(--primary) !important;
+  box-shadow: inset 0 0 10px rgba(0, 130, 195, 0.15);
+}
+
 
 
 

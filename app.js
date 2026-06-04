@@ -218,7 +218,8 @@ let appState = {
   optimizerMode: 'industry',
   importedAnalytics: loadStoredData('cbsocials_analytics', []),
   calendarNotes: loadStoredData('cbsocials_calendar_notes', []),
-  currentCalendarDate: new Date()
+  currentCalendarDate: new Date(),
+  calendarPlatformFilter: 'all'
 };
 
 // Save state to LocalStorage
@@ -1512,6 +1513,30 @@ function initEvents() {
       closeCalendarNoteModal();
     });
   }
+
+  // Calendar platform filters
+  document.querySelectorAll('.calendar-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.calendar-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      appState.calendarPlatformFilter = btn.dataset.platform;
+      renderCalendar();
+    });
+  });
+
+  // Dragstart delegation for copy rows
+  if (elements.storiesHubList) {
+    elements.storiesHubList.addEventListener('dragstart', (e) => {
+      const row = e.target.closest('.story-copy-row');
+      if (row) {
+        e.dataTransfer.setData('application/json', JSON.stringify({
+          storyId: row.dataset.storyId,
+          cvIdx: parseInt(row.dataset.cvIdx, 10)
+        }));
+        e.dataTransfer.effectAllowed = 'copy';
+      }
+    });
+  }
 }
 
 // ── Copy Library Modal Helpers ────────────────────────────────────────────────
@@ -1839,7 +1864,7 @@ function renderStoriesHub() {
         });
 
         return `
-          <div class="story-copy-row">
+          <div class="story-copy-row" draggable="true" data-story-id="${story.id}" data-cv-idx="${i}">
             <div class="story-copy-num">V${i + 1}</div>
             <div class="story-copy-text-container">
               <div class="story-copy-text">${escapeHtml(text)}</div>
@@ -2150,7 +2175,10 @@ function renderCalendar() {
     }
     
     // Scheduled posts for this day
-    const dayPosts = appState.posts.filter(p => p.scheduledDate === dateStr);
+    let dayPosts = appState.posts.filter(p => p.scheduledDate === dateStr);
+    if (appState.calendarPlatformFilter && appState.calendarPlatformFilter !== 'all') {
+      dayPosts = dayPosts.filter(p => p.platforms.includes(appState.calendarPlatformFilter));
+    }
     let postsHtml = dayPosts.map(p => {
       const badgesHtml = p.platforms.map(pl => {
         let nameLetter = '';
@@ -2171,6 +2199,7 @@ function renderCalendar() {
       `;
     }).join('');
     
+    dayCell.dataset.date = dateStr;
     dayCell.innerHTML = `
       <div class="calendar-day-header">
         <div class="calendar-day-num">${dayNum}</div>
@@ -2184,6 +2213,38 @@ function renderCalendar() {
       </div>
     `;
     
+    // Drag & drop event listeners for calendar day cell
+    dayCell.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    });
+    dayCell.addEventListener('dragenter', (e) => {
+      dayCell.classList.add('drag-over');
+    });
+    dayCell.addEventListener('dragleave', () => {
+      dayCell.classList.remove('drag-over');
+    });
+    dayCell.addEventListener('drop', (e) => {
+      dayCell.classList.remove('drag-over');
+      try {
+        const rawData = e.dataTransfer.getData('application/json');
+        if (rawData) {
+          const data = JSON.parse(rawData);
+          if (data && data.storyId && data.cvIdx !== undefined) {
+            const story = appState.stories.find(s => s.id === data.storyId);
+            if (story) {
+              const cv = story.copyVersions[data.cvIdx];
+              const text = getCopyVersionText(cv);
+              const taggedPlatforms = getCopyVersionPlatforms(cv);
+              openPushToCalendarModal(story.id, data.cvIdx, text, taggedPlatforms, dateStr);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error handling copy drop:', err);
+      }
+    });
+
     dayCell.addEventListener('click', (e) => {
       const quickAddBtn = e.target.closest('.calendar-day-quick-add');
       if (quickAddBtn) {
@@ -2204,7 +2265,7 @@ function renderCalendar() {
   }
 }
 
-function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms) {
+function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms, targetDate = null) {
   elements.pushCalendarStoryId.value = storyId;
   elements.pushCalendarCvIdx.value = cvIdx;
   elements.pushCalendarCopyPreview.textContent = text;
@@ -2223,8 +2284,8 @@ function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms) {
     elements.btnPushCalendarSave.disabled = false;
     
     const story = appState.stories.find(s => s.id === storyId);
-    let defaultDate = new Date().toISOString().split('T')[0];
-    if (story && story.txDate && story.txDate !== 'TBC') {
+    let defaultDate = targetDate || new Date().toISOString().split('T')[0];
+    if (!targetDate && story && story.txDate && story.txDate !== 'TBC') {
       const parsedTime = parseTxDate(story.txDate);
       if (parsedTime > 0) {
         defaultDate = new Date(parsedTime).toISOString().split('T')[0];
