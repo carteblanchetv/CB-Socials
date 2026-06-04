@@ -1520,7 +1520,20 @@ function initEvents() {
       document.querySelectorAll('.calendar-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       appState.calendarPlatformFilter = btn.dataset.platform;
+      
+      const calendarSection = document.getElementById('panel-calendar-fullwidth');
+      const rectBefore = calendarSection ? calendarSection.getBoundingClientRect() : null;
+      const scrollTopBefore = window.scrollY;
+
       renderCalendar();
+
+      if (calendarSection && rectBefore) {
+        const rectAfter = calendarSection.getBoundingClientRect();
+        const diff = rectAfter.top - rectBefore.top;
+        if (Math.abs(diff) > 1) {
+          window.scrollTo(0, scrollTopBefore + diff);
+        }
+      }
     });
   });
 

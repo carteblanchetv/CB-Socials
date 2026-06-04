@@ -1705,9 +1705,9 @@ textarea {
   align-items: center;
   justify-content: space-between;
   padding: 0.45rem 0.7rem;
-  background: linear-gradient(90deg, rgba(0,130,195,0.12) 0%, transparent 100%);
+  background: rgba(255, 255, 255, 0.03);
   border-left: 2px solid var(--primary);
-  border-radius: 0 6px 6px 0;
+  border-radius: 6px;
   gap: 0.5rem;
 }
 
@@ -1718,7 +1718,7 @@ textarea {
 }
 
 .story-date-header--clickable:hover {
-  background: linear-gradient(90deg, rgba(0,130,195,0.2) 0%, rgba(0,130,195,0.04) 100%);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .story-group-chevron {
@@ -1831,6 +1831,7 @@ textarea {
   padding: 0.45rem 0.55rem;
   transition: background 0.15s;
   cursor: grab;
+  position: relative;
 }
 .story-copy-row:active {
   cursor: grabbing;
@@ -1859,14 +1860,28 @@ textarea {
 }
 
 .story-copy-actions {
+  position: absolute;
+  right: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
-  gap: 0.2rem;
+  gap: 0.25rem;
   flex-shrink: 0;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.15s ease;
+  background: #0d1b2a;
+  padding: 0.25rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(5px);
+}
+[data-theme="light"] .story-copy-actions {
+  background: #f0f6fa;
 }
 
-.story-copy-row:hover .story-copy-actions { opacity: 1; }
+.story-copy-row:hover .story-copy-actions { opacity: 1; pointer-events: auto; }
 
 /* Story modal copy version fields */
 .copy-version-field {
@@ -1920,6 +1935,7 @@ textarea {
   flex: 1;
   gap: 0.35rem;
   min-width: 0;
+  padding-right: 3.25rem;
 }
 
 .story-copy-platforms-row {
@@ -1966,13 +1982,13 @@ textarea {
 /* TBC / Unlinked Header Styles */
 .story-date-header--tbc {
   border-left: 2px dashed var(--color-warning) !important;
-  background: linear-gradient(90deg, rgba(235, 160, 0, 0.08) 0%, transparent 100%) !important;
+  background: rgba(235, 160, 0, 0.05) !important;
 }
 
 /* Active Broadcast Week Styles (Green) */
 .story-date-header--active-week {
   border-left: 2px solid var(--color-success) !important;
-  background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, transparent 100%) !important;
+  background: rgba(16, 185, 129, 0.05) !important;
   box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.03);
 }
 
@@ -2088,6 +2104,7 @@ textarea {
   grid-template-columns: repeat(7, 1fr);
   gap: 0.4rem;
   padding: 0 0.25rem;
+  min-height: 600px;
 }
 
 .calendar-day {
