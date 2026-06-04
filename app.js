@@ -2151,9 +2151,11 @@ function renderCalendar() {
     }).join('');
     
     dayCell.innerHTML = `
-      <div class="calendar-day-num">${dayNum}</div>
+      <div class="calendar-day-header">
+        <div class="calendar-day-num">${dayNum}</div>
+      </div>
       ${noteHtml}
-      <div class="calendar-day-posts" style="display:flex; flex-direction:column; gap:0.2rem; width:100%; margin-top:0.25rem;">
+      <div class="calendar-day-posts" style="display:flex; flex-direction:column; gap:0.2rem; width:100%; margin-top:0.1rem;">
         ${postsHtml}
       </div>
     `;
