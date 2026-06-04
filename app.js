@@ -199,7 +199,10 @@ function loadStoredData(key, fallback) {
 
 let appState = {
   posts: loadStoredData('cbsocials_posts', MOCK_POSTS),
-  stories: loadStoredData('cbsocials_stories', SEED_STORIES),
+  stories: loadStoredData('cbsocials_stories', SEED_STORIES).map(s => {
+    if (s.txDate) s.txDate = normalizeDateString(s.txDate);
+    return s;
+  }),
   isDirty: localStorage.getItem('cbsocials_stories_dirty') === 'true',
   storySearch: '',
   collapsedGroups: new Set(loadStoredData('cbsocials_collapsed_groups', [])),
@@ -244,7 +247,7 @@ async function saveStories() {
             const docRef = firestoreDb.collection('stories').doc(s.id);
             batch.set(docRef, {
               id: s.id,
-              txDate: s.txDate || 'TBC',
+              txDate: s.txDate ? normalizeDateString(s.txDate) : 'TBC',
               title: s.title || '',
               legalNote: s.legalNote || '',
               copyVersions: s.copyVersions || [],
@@ -1594,7 +1597,7 @@ function renderStoriesHub() {
   const diffDays = dayOfWeekNum === 0 ? 0 : 7 - dayOfWeekNum;
   const upcomingSunday = new Date(today);
   upcomingSunday.setDate(today.getDate() + diffDays);
-  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   const upcomingSundayStr = `${upcomingSunday.getDate()} ${months[upcomingSunday.getMonth()]} ${upcomingSunday.getFullYear()}`;
 
   // Sort groups: place TBC/Unlinked at the absolute top, then chronological descending
@@ -1832,13 +1835,24 @@ function parseTxDate(dateStr) {
   const clean = dateStr.toUpperCase().trim();
   if (clean === 'TBC' || clean === 'UNLINKED' || clean === '') return 0;
   try {
+    const ymdMatch = clean.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (ymdMatch) {
+      const year = parseInt(ymdMatch[1], 10);
+      const monthIdx = parseInt(ymdMatch[2], 10) - 1;
+      const day = parseInt(ymdMatch[3], 10);
+      return new Date(year, monthIdx, day).getTime();
+    }
     const matched = clean.match(/(\d+)\s+([A-Z]+)\s+(\d+)/);
     if (matched) {
       const day = parseInt(matched[1], 10);
       const monthStr = matched[2];
       const year = parseInt(matched[3], 10);
-      const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-      const monthIdx = months.indexOf(monthStr);
+      const months3 = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const monthsFull = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+      let monthIdx = monthsFull.indexOf(monthStr);
+      if (monthIdx === -1) {
+        monthIdx = months3.indexOf(monthStr);
+      }
       if (monthIdx !== -1) {
         return new Date(year, monthIdx, day).getTime();
       }
@@ -1855,7 +1869,7 @@ function formatDateToStandard(dateStr) {
   const year = parts[0];
   const monthIdx = parseInt(parts[1], 10) - 1;
   const day = parseInt(parts[2], 10);
-  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   return `${day} ${months[monthIdx]} ${year}`;
 }
 
@@ -1867,7 +1881,7 @@ function normalizeDateString(dateStr) {
   if (timestamp === 0) return dateStr;
   const d = new Date(timestamp);
   const day = d.getDate();
-  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   const month = months[d.getMonth()];
   const year = d.getFullYear();
   return `${day} ${month} ${year}`;
@@ -1880,8 +1894,12 @@ function formatStandardToInputDate(stdDateStr) {
   const day = parts[0].padStart(2, '0');
   const monthStr = parts[1];
   const year = parts[2];
-  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  const monthIdx = months.indexOf(monthStr);
+  const months3 = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const monthsFull = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  let monthIdx = monthsFull.indexOf(monthStr);
+  if (monthIdx === -1) {
+    monthIdx = months3.indexOf(monthStr);
+  }
   if (monthIdx === -1) return '';
   const month = String(monthIdx + 1).padStart(2, '0');
   return `${year}-${month}-${day}`;
@@ -2446,7 +2464,7 @@ async function restoreStoriesFromBackup() {
           // Format correctly to match appState.stories expectations
           stories = parsed.map((s, idx) => ({
             id: s.id || `story-backup-${idx}-${Date.now()}`,
-            txDate: s.txDate || 'TBC',
+            txDate: s.txDate ? normalizeDateString(s.txDate) : 'TBC',
             title: s.title || '',
             legalNote: s.legalNote || '',
             copyVersions: s.copyVersions || [],
@@ -2486,7 +2504,7 @@ function setupRealtimeSubscription() {
         const data = doc.data();
         updatedStories.push({
           id: data.id,
-          txDate: data.txDate,
+          txDate: data.txDate ? normalizeDateString(data.txDate) : 'TBC',
           title: data.title,
           legalNote: data.legalNote,
           copyVersions: data.copyVersions,
