@@ -232,6 +232,18 @@ function saveState() {
   }
 }
 
+function deletePost(id) {
+  appState.posts = appState.posts.filter(p => p.id !== id);
+  if (appState.selectedPreviewPostId === id) {
+    appState.selectedPreviewPostId = null;
+  }
+  saveState();
+  renderDrafts();
+  renderCalendar();
+  renderFeedSimulator();
+  showToast('Post deleted.');
+}
+
 async function saveStories() {
   try {
     appState.isDirty = true;
@@ -291,6 +303,7 @@ const elements = {
   modalTitle: document.getElementById('modal-title'),
   btnModalClose: document.getElementById('btn-modal-close'),
   btnModalCancel: document.getElementById('btn-modal-cancel'),
+  btnModalDelete: document.getElementById('btn-modal-delete'),
   postForm: document.getElementById('post-form'),
   formPostId: document.getElementById('form-post-id'),
   formPostTitle: document.getElementById('form-post-title'),
@@ -867,6 +880,7 @@ function openEditPostModal(id) {
   });
 
   elements.modalTitle.textContent = 'Edit Copy Draft';
+  if (elements.btnModalDelete) elements.btnModalDelete.style.display = 'inline-block';
   elements.postModal.style.display = 'flex';
   
   updateWarnings();
@@ -879,6 +893,7 @@ function resetPostForm() {
   elements.formPostTime.value = '12:00';
   elements.formPostStatus.value = 'Draft';
   elements.formPostText.value = '';
+  if (elements.btnModalDelete) elements.btnModalDelete.style.display = 'none';
   
   document.querySelectorAll('input[name="form-platforms"]').forEach(cb => {
     cb.checked = (cb.value === 'twitter'); // Default check Twitter
@@ -990,6 +1005,15 @@ function initEvents() {
   elements.btnModalCancel.addEventListener('click', () => {
     elements.postModal.style.display = 'none';
   });
+  if (elements.btnModalDelete) {
+    elements.btnModalDelete.addEventListener('click', () => {
+      const id = elements.formPostId.value;
+      if (id && confirm('Are you sure you want to delete this post draft?')) {
+        deletePost(id);
+        elements.postModal.style.display = 'none';
+      }
+    });
+  }
 
   // Close modal when clicking outside
   window.addEventListener('click', (e) => {
@@ -1547,6 +1571,14 @@ function initEvents() {
           cvIdx: parseInt(row.dataset.cvIdx, 10)
         }));
         e.dataTransfer.effectAllowed = 'copy';
+        
+        // Auto scroll calendar into view after drag starts (prevents drag image clipping)
+        setTimeout(() => {
+          const calendar = document.getElementById('panel-calendar-fullwidth');
+          if (calendar) {
+            calendar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 50);
       }
     });
   }
