@@ -2398,6 +2398,9 @@ function renderCalendar() {
     if (appState.calendarPlatformFilter && appState.calendarPlatformFilter !== 'all') {
       dayPosts = dayPosts.filter(p => p.platforms.includes(appState.calendarPlatformFilter));
     }
+    // Sort chronologically from earliest to latest
+    dayPosts.sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
+    
     let postsHtml = dayPosts.map(p => {
       const badgesHtml = p.platforms.map(pl => {
         let nameLetter = '';
