@@ -384,6 +384,7 @@ const elements = {
   pushCalendarCvIdx: document.getElementById('push-calendar-cv-idx'),
   pushCalendarCopyPreview: document.getElementById('push-calendar-copy-preview'),
   pushCalendarPlatformsContainer: document.getElementById('push-calendar-platforms-container'),
+  pushPlatformsSelector: document.getElementById('push-platforms-selector'),
   btnPushCalendarSave: document.getElementById('btn-push-calendar-save'),
   btnPushCalendarClose: document.getElementById('btn-push-calendar-close'),
   btnPushCalendarCancel: document.getElementById('btn-push-calendar-cancel'),
@@ -559,6 +560,162 @@ function convertTo24h(time12h) {
     hours = parseInt(hours, 10) + 12;
   }
   return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
+function updateFormOptimumTimes() {
+  const container = document.getElementById('form-optimum-times-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  const dateVal = elements.formPostDate.value;
+  if (!dateVal) return;
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return;
+  
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayName = dayNames[d.getDay()];
+  
+  // Get all checked platforms
+  const checkedPlats = [];
+  document.querySelectorAll('input[name="form-platforms"]:checked').forEach(cb => {
+    checkedPlats.push(cb.value);
+  });
+  
+  if (checkedPlats.length === 0) return;
+  
+  // Get suggestions for each selected platform
+  const allTimesMap = new Map(); // Keep track of unique times and their platform sources
+  checkedPlats.forEach(plat => {
+    let platTimes = [];
+    if (appState.optimizerMode === 'custom') {
+      platTimes = getCustomSuggestions().find(s => s.platform === plat)?.times || [];
+    } else {
+      platTimes = POSTING_SUGGESTIONS[dayName]?.find(s => s.platform === plat)?.times || [];
+    }
+    platTimes.forEach(tStr => {
+      if (!allTimesMap.has(tStr)) {
+        allTimesMap.set(tStr, []);
+      }
+      allTimesMap.get(tStr).push(plat);
+    });
+  });
+  
+  if (allTimesMap.size > 0) {
+    container.innerHTML = `
+      <span style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-right:0.25rem; width:100%; display:block; margin-bottom:0.15rem;">Optimum Times:</span>
+    `;
+    
+    // Sort times
+    const sortedTimes = Array.from(allTimesMap.keys()).sort((a, b) => {
+      return convertTo24h(a).localeCompare(convertTo24h(b));
+    });
+    
+    sortedTimes.forEach(tStr => {
+      const timeVal = convertTo24h(tStr);
+      const platforms = allTimesMap.get(tStr);
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'form-optimum-pill';
+      pill.style.cssText = `
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border-glass);
+        color: var(--text-secondary);
+        font-size: 0.62rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      `;
+      
+      let badgeIndicators = platforms.map(pl => {
+        let name = '';
+        if (pl === 'twitter') name = 'X';
+        else if (pl === 'bluesky') name = 'BS';
+        else if (pl === 'instagram') name = 'IG';
+        else if (pl === 'facebook') name = 'FB';
+        else if (pl === 'tiktok') name = 'TT';
+        else if (pl === 'youtube') name = 'YT';
+        return name;
+      }).join(', ');
+      
+      pill.innerHTML = `${tStr} <span style="font-size:0.55rem; color:var(--text-muted);">(${badgeIndicators})</span>`;
+      pill.addEventListener('click', () => {
+        elements.formPostTime.value = timeVal;
+        
+        container.querySelectorAll('.form-optimum-pill').forEach(p => {
+          p.style.background = 'rgba(255,255,255,0.06)';
+          p.style.borderColor = 'var(--border-glass)';
+          p.style.color = 'var(--text-secondary)';
+        });
+        pill.style.background = 'var(--primary)';
+        pill.style.borderColor = 'var(--primary)';
+        pill.style.color = '#fff';
+      });
+      container.appendChild(pill);
+    });
+  }
+}
+
+function updatePushOptimumTimes(plat, dateVal) {
+  const container = document.getElementById(`push-optimum-${plat}`);
+  if (!container) return;
+  container.innerHTML = '';
+  
+  if (!dateVal) return;
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return;
+  
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayName = dayNames[d.getDay()];
+  
+  // Find suggestions for this day and platform
+  let suggestions = [];
+  if (appState.optimizerMode === 'custom') {
+    suggestions = getCustomSuggestions().find(s => s.platform === plat)?.times || [];
+  } else {
+    suggestions = POSTING_SUGGESTIONS[dayName]?.find(s => s.platform === plat)?.times || [];
+  }
+  
+  if (suggestions.length > 0) {
+    container.innerHTML = `
+      <span style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-right:0.25rem;">Optimum:</span>
+    `;
+    suggestions.forEach(tStr => {
+      const timeVal = convertTo24h(tStr);
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'push-optimum-pill';
+      pill.style.cssText = `
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border-glass);
+        color: var(--text-secondary);
+        font-size: 0.62rem;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      `;
+      pill.innerHTML = tStr;
+      pill.addEventListener('click', () => {
+        const timeInput = document.getElementById(`push-time-${plat}`);
+        if (timeInput) {
+          timeInput.value = timeVal;
+        }
+        // Highlight selected pill
+        container.querySelectorAll('.push-optimum-pill').forEach(p => {
+          p.style.background = 'rgba(255,255,255,0.06)';
+          p.style.borderColor = 'var(--border-glass)';
+          p.style.color = 'var(--text-secondary)';
+        });
+        pill.style.background = 'var(--primary)';
+        pill.style.borderColor = 'var(--primary)';
+        pill.style.color = '#fff';
+      });
+      container.appendChild(pill);
+    });
+  } else {
+    container.innerHTML = `<span style="font-size:0.62rem; color:var(--text-muted);">No suggestions for this day</span>`;
+  }
 }
 
 // Map day of week name to the upcoming calendar date
@@ -884,6 +1041,7 @@ function openEditPostModal(id) {
   elements.postModal.style.display = 'flex';
   
   updateWarnings();
+  updateFormOptimumTimes();
 }
 
 function resetPostForm() {
@@ -898,6 +1056,7 @@ function resetPostForm() {
   document.querySelectorAll('input[name="form-platforms"]').forEach(cb => {
     cb.checked = (cb.value === 'twitter'); // Default check Twitter
   });
+  updateFormOptimumTimes();
 }
 
 function updateWarnings() {
@@ -1025,8 +1184,12 @@ function initEvents() {
   // Live validation on post edit
   elements.formPostText.addEventListener('input', updateWarnings);
   document.querySelectorAll('input[name="form-platforms"]').forEach(cb => {
-    cb.addEventListener('change', updateWarnings);
+    cb.addEventListener('change', () => {
+      updateWarnings();
+      updateFormOptimumTimes();
+    });
   });
+  elements.formPostDate.addEventListener('change', updateFormOptimumTimes);
 
   // Post form submit
   elements.postForm.addEventListener('submit', (e) => {
@@ -1073,6 +1236,7 @@ function initEvents() {
     saveState();
     elements.postModal.style.display = 'none';
     renderDrafts();
+    renderCalendar();
     renderFeedSimulator();
   });
 
@@ -1268,12 +1432,22 @@ function initEvents() {
       
       const cv = story.copyVersions[cvIdx];
       const text = getCopyVersionText(cv);
-      const taggedPlatforms = getCopyVersionPlatforms(cv);
+      
+      // Get all checked platforms in the selector
+      const selectedPlatforms = [];
+      document.querySelectorAll('input[name="push-platforms"]:checked').forEach(cb => {
+        selectedPlatforms.push(cb.value);
+      });
+      
+      if (selectedPlatforms.length === 0) {
+        alert('Please select at least one platform to schedule.');
+        return;
+      }
       
       // For each platform, create a separate post/draft item
-      taggedPlatforms.forEach(plat => {
-        const dateVal = document.querySelector(`input[name="push-date-${plat}"]`).value;
-        const timeVal = document.querySelector(`input[name="push-time-${plat}"]`).value;
+      selectedPlatforms.forEach(plat => {
+        const dateVal = document.getElementById(`push-date-${plat}`).value;
+        const timeVal = document.getElementById(`push-time-${plat}`).value;
         
         const newPost = {
           id: `post-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -2315,32 +2489,94 @@ function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms, targetDa
   elements.pushCalendarCvIdx.value = cvIdx;
   elements.pushCalendarCopyPreview.textContent = text;
   
+  // Save parameters to modal state for redraws
+  elements.pushCalendarModal.dataset.storyId = storyId;
+  elements.pushCalendarModal.dataset.cvIdx = cvIdx;
+  elements.pushCalendarModal.dataset.targetDate = targetDate || '';
+  
+  const selector = elements.pushPlatformsSelector;
+  selector.innerHTML = '';
+  
+  const platformsList = ['bluesky', 'facebook', 'instagram', 'tiktok', 'twitter', 'youtube'];
+  
+  platformsList.forEach(plat => {
+    const isChecked = taggedPlatforms.includes(plat);
+    const wrapper = document.createElement('label');
+    let themeClass = `${plat}-theme`;
+    if (plat === 'twitter') themeClass = 'x-theme';
+    wrapper.className = `platform-checkbox-wrapper ${themeClass}`;
+    
+    let nameLabel = '';
+    if (plat === 'twitter') nameLabel = 'X';
+    else if (plat === 'bluesky') nameLabel = 'BlueSky';
+    else if (plat === 'instagram') nameLabel = 'Instagram';
+    else if (plat === 'facebook') nameLabel = 'Facebook';
+    else if (plat === 'tiktok') nameLabel = 'TikTok';
+    else if (plat === 'youtube') nameLabel = 'YouTube';
+    
+    wrapper.innerHTML = `
+      <input type="checkbox" name="push-platforms" value="${plat}" ${isChecked ? 'checked' : ''}>
+      <span class="checkbox-custom"></span>
+      <span class="platform-name" style="font-size: 0.7rem;">${nameLabel}</span>
+    `;
+    
+    wrapper.querySelector('input').addEventListener('change', () => {
+      renderPushCalendarInputs();
+    });
+    
+    selector.appendChild(wrapper);
+  });
+  
+  renderPushCalendarInputs();
+  elements.pushCalendarModal.style.display = 'flex';
+}
+
+function renderPushCalendarInputs() {
   const container = elements.pushCalendarPlatformsContainer;
   container.innerHTML = '';
   
-  if (!taggedPlatforms || taggedPlatforms.length === 0) {
+  const selectedPlatforms = [];
+  document.querySelectorAll('input[name="push-platforms"]:checked').forEach(cb => {
+    selectedPlatforms.push(cb.value);
+  });
+  
+  const targetDate = elements.pushCalendarModal.dataset.targetDate || new Date().toISOString().split('T')[0];
+  const storyId = elements.pushCalendarModal.dataset.storyId;
+  const story = appState.stories.find(s => s.id === storyId);
+  
+  let defaultDate = targetDate;
+  if (!elements.pushCalendarModal.dataset.targetDate && story && story.txDate && story.txDate !== 'TBC') {
+    const parsedTime = parseTxDate(story.txDate);
+    if (parsedTime > 0) {
+      defaultDate = new Date(parsedTime).toISOString().split('T')[0];
+    }
+  }
+
+  if (selectedPlatforms.length === 0) {
     container.innerHTML = `
-      <div style="font-size:0.75rem; color:var(--color-warning); padding:0.5rem; border:1px dashed var(--color-warning); border-radius:4px; text-align:center;">
-        No platforms are tagged on this copy version yet. Close this modal and click the platform badges (X, BS, IG, etc.) next to the text to tag platforms first!
+      <div style="font-size:0.75rem; color:var(--color-warning); padding:0.5rem; border:1px dashed var(--color-warning); border-radius:4px; text-align:center; width:100%;">
+        No platforms selected. Please check at least one platform above to configure schedule times.
       </div>
     `;
     elements.btnPushCalendarSave.disabled = true;
   } else {
     elements.btnPushCalendarSave.disabled = false;
     
-    const story = appState.stories.find(s => s.id === storyId);
-    let defaultDate = targetDate || new Date().toISOString().split('T')[0];
-    if (!targetDate && story && story.txDate && story.txDate !== 'TBC') {
-      const parsedTime = parseTxDate(story.txDate);
-      if (parsedTime > 0) {
-        defaultDate = new Date(parsedTime).toISOString().split('T')[0];
-      }
-    }
-    
-    taggedPlatforms.forEach(plat => {
+    selectedPlatforms.forEach(plat => {
       const config = PLATFORMS_CONFIG[plat];
       const platRow = document.createElement('div');
       platRow.className = 'push-calendar-row';
+      platRow.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        background: rgba(255,255,255,0.02);
+        padding: 0.5rem 0.65rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-glass);
+        margin-bottom: 0.4rem;
+        width: 100%;
+      `;
       
       let nameLetter = '';
       if (plat === 'twitter') nameLetter = 'X';
@@ -2351,17 +2587,29 @@ function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms, targetDa
       else if (plat === 'youtube') nameLetter = 'YT';
       
       platRow.innerHTML = `
-        <span class="push-calendar-platform-badge" style="background: ${config.color}">${nameLetter} (${config.name})</span>
-        <div class="push-calendar-inputs">
-          <input type="date" name="push-date-${plat}" value="${defaultDate}" required>
-          <input type="time" name="push-time-${plat}" value="09:00" required>
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:0.5rem;">
+          <span class="push-calendar-platform-badge" style="background: ${config.color}; font-size:0.62rem; padding:0.12rem 0.38rem; border-radius:4px; color:#fff; font-weight:700;">${nameLetter} (${config.name})</span>
+          <div class="push-calendar-inputs" style="display:flex; gap:0.4rem; align-items:center;">
+            <input type="date" id="push-date-${plat}" name="push-date-${plat}" value="${defaultDate}" required style="font-size:0.75rem; padding:0.15rem 0.35rem; border-radius:4px; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
+            <input type="time" id="push-time-${plat}" name="push-time-${plat}" value="09:00" required style="font-size:0.75rem; padding:0.15rem 0.35rem; border-radius:4px; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
+          </div>
+        </div>
+        <div class="push-optimum-times" id="push-optimum-${plat}" style="display:flex; flex-wrap:wrap; gap:0.25rem; align-items:center; padding-left:0.1rem; margin-top:0.15rem;">
+          <!-- Populated dynamically -->
         </div>
       `;
+      
       container.appendChild(platRow);
+      
+      // Update optimum times for the default date
+      updatePushOptimumTimes(plat, defaultDate);
+      
+      // Watch date input changes to update optimum times
+      platRow.querySelector(`input[type="date"]`).addEventListener('change', (e) => {
+        updatePushOptimumTimes(plat, e.target.value);
+      });
     });
   }
-  
-  elements.pushCalendarModal.style.display = 'flex';
 }
 
 function closePushToCalendarModal() {

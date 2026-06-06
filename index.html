@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.7">
+  <link rel="stylesheet" href="style.css?v=2.8">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -347,6 +347,7 @@
           <div class="form-group half-width">
             <label for="form-post-time">Schedule Time</label>
             <input type="time" id="form-post-time" required>
+            <div id="form-optimum-times-container" style="margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center;"></div>
           </div>
         </div>
 
@@ -550,6 +551,13 @@
           <div id="push-calendar-copy-preview" style="font-size:0.8rem; padding:0.6rem; background:rgba(0,0,0,0.15); border:1px solid var(--border-glass); border-radius:6px; max-height:100px; overflow-y:auto; color:var(--text-secondary); white-space:pre-wrap;"></div>
         </div>
 
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Select Platforms to Schedule</label>
+          <div class="platform-checkboxes" id="push-platforms-selector" style="margin-top:0.4rem;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Platform Schedule Times</label>
           <div id="push-calendar-platforms-container" style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.4rem;">
@@ -734,6 +742,6 @@ service cloud.firestore {
   </div>
 
   <!-- Core App Scripts -->
-  <script src="app.js?v=2.7"></script>
+  <script src="app.js?v=2.8"></script>
 </body>
 </html>
