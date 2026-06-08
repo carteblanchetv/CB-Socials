@@ -220,7 +220,8 @@ let appState = {
   calendarNotes: loadStoredData('cbsocials_calendar_notes', []),
   currentCalendarDate: new Date(),
   calendarPlatformFilter: 'all',
-  calendarViewMode: 'week'
+  calendarViewMode: 'week',
+  activeOptimizerPlatform: 'instagram'
 };
 
 // Save state to LocalStorage
@@ -496,49 +497,35 @@ function getCustomSuggestions() {
 
 // 3. Scheduling suggestions renderer
 function renderSuggestions() {
+  if (!elements.suggestionsGrid) return;
+  
   const suggestions = appState.optimizerMode === 'custom' 
     ? getCustomSuggestions() 
     : [...POSTING_SUGGESTIONS[appState.activeDay]];
 
-  suggestions.sort((a, b) => {
-    const nameA = PLATFORMS_CONFIG[a.platform]?.name || '';
-    const nameB = PLATFORMS_CONFIG[b.platform]?.name || '';
-    return nameA.localeCompare(nameB);
-  });
-
+  const targetPlat = appState.activeOptimizerPlatform || 'instagram';
+  const item = suggestions.find(s => s.platform === targetPlat);
+  
   elements.suggestionsGrid.innerHTML = '';
+  
+  if (!item || !item.times || item.times.length === 0) {
+    elements.suggestionsGrid.innerHTML = `<span style="font-size: 0.7rem; color: var(--text-muted); padding: 0.2rem 0.5rem;">No suggestions available for this day.</span>`;
+    return;
+  }
 
-  suggestions.forEach(item => {
-    const config = PLATFORMS_CONFIG[item.platform];
-    if (!config) return;
-
-    const card = document.createElement('div');
-    card.className = 'suggestion-card';
-
-    // Build the UI
-    card.innerHTML = `
-      <div class="suggestion-header">
-        <span class="platform-badge badge-${item.platform}">
-          ${config.icon}
-          ${config.name}
-        </span>
-        <span class="engagement-score">${item.isCustom ? '⭐ Personal Peak' : 'Industry Peak'}: ${item.engagement}% Engagement</span>
-      </div>
-      <div class="engagement-bar">
-        <div class="engagement-bar-fill" style="width: ${item.engagement}%; background: ${config.color}"></div>
-      </div>
-      <div class="times-row">
-        ${item.times.map(t => `
-          <button class="time-pill" data-platform="${item.platform}" data-time="${t}">
-            ${t}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        `).join('')}
-      </div>
-    `;
-
-    elements.suggestionsGrid.appendChild(card);
+  // Sync active platform tab button state in UI
+  document.querySelectorAll('.opt-platform-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.platform === targetPlat);
   });
+
+  const timesHtml = item.times.map(t => `
+    <button class="time-pill" data-platform="${targetPlat}" data-time="${t}">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 0.25rem;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      ${t}
+    </button>
+  `).join('');
+  
+  elements.suggestionsGrid.innerHTML = timesHtml;
 
   // Attach event listeners to time pills
   elements.suggestionsGrid.querySelectorAll('.time-pill').forEach(pill => {
@@ -1134,6 +1121,16 @@ function initEvents() {
       elements.dayTabsList.querySelector('.day-tab.active').classList.remove('active');
       tab.classList.add('active');
       appState.activeDay = tab.dataset.day;
+      renderSuggestions();
+    });
+  });
+
+  // Optimizer platform tabs selector click
+  document.querySelectorAll('.opt-platform-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.opt-platform-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      appState.activeOptimizerPlatform = tab.dataset.platform;
       renderSuggestions();
     });
   });

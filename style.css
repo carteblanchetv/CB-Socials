@@ -2451,14 +2451,12 @@ textarea {
   box-shadow: inset 0 0 10px rgba(0, 130, 195, 0.15);
 }
 
-/* Top Bar - Posting Schedule Optimiser */
+/* Top Bar - Multi-row Posting Schedule Optimiser */
 .panel-scheduler-top {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 0.5rem 1.25rem;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem 1.25rem;
   background: var(--bg-panel);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -2468,6 +2466,33 @@ textarea {
   margin-bottom: 1rem;
   min-height: 0;
   overflow: hidden;
+}
+
+.opt-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.opt-row-1 {
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.5rem;
+}
+
+.opt-row-2, .opt-row-3 {
+  font-size: 0.72rem;
+}
+
+.opt-row-label {
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+  min-width: 110px;
+  flex-shrink: 0;
 }
 
 .opt-top-group-1 {
@@ -2486,77 +2511,70 @@ textarea {
   letter-spacing: 0.05em;
 }
 
-/* Horizontal Suggestions Grid inside Top Bar */
+/* Platform Selector Tabs */
+.opt-platform-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.opt-platform-tab {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.opt-platform-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.opt-platform-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 6px var(--primary-glow);
+}
+
+/* Time Pills suggestions grid in Top Bar Row 3 */
 .panel-scheduler-top .suggestions-grid {
   display: flex;
   flex-direction: row;
   gap: 0.5rem;
   overflow-x: auto;
   flex: 1;
-  padding: 0.2rem 0;
-  scrollbar-width: none;
+  padding: 0.1rem 0;
   align-items: center;
-}
-
-.panel-scheduler-top .suggestions-grid::-webkit-scrollbar {
-  display: none;
-}
-
-.panel-scheduler-top .suggestion-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-glass);
-  border-radius: 10px;
-  padding: 0.3rem 0.6rem;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-  min-height: 0;
-  box-shadow: none;
-  transition: all 0.2s ease;
-}
-
-.panel-scheduler-top .suggestion-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--border-focus);
-}
-
-.panel-scheduler-top .suggestion-header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.05rem;
-}
-
-.panel-scheduler-top .platform-badge {
-  font-size: 0.62rem;
-  padding: 0.1rem 0.3rem;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.panel-scheduler-top .engagement-score {
-  font-size: 0.5rem;
-  color: var(--text-muted);
-}
-
-.panel-scheduler-top .engagement-bar {
-  display: none;
-}
-
-.panel-scheduler-top .times-row {
-  display: flex;
-  gap: 0.2rem;
-  margin: 0;
 }
 
 .panel-scheduler-top .time-pill {
-  font-size: 0.62rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.panel-scheduler-top .time-pill:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 6px var(--primary-glow);
+  transform: translateY(-1px);
 }
 
 .csv-upload-zone-compact {
@@ -2570,12 +2588,18 @@ textarea {
     gap: 0.75rem;
     height: auto;
   }
-  .opt-top-group-1 {
-    justify-content: space-between;
+  .opt-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
   }
-  .panel-scheduler-top .suggestions-grid {
-    overflow-x: auto;
-    padding-bottom: 0.4rem;
+  .opt-row-1 {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .opt-row-label {
+    min-width: auto;
   }
 }
 
