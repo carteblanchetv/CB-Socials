@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cb-socials-cache-v1';
+const CACHE_NAME = 'cb-socials-cache-v9';
 
 self.addEventListener('install', (event) => {
   // Force the waiting service worker to become the active service worker
