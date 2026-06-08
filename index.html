@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=3.8">
+  <link rel="stylesheet" href="style.css?v=3.9">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -110,12 +110,12 @@
       <div class="opt-row opt-row-2">
         <span class="opt-row-label">Platform:</span>
         <div class="opt-platform-tabs" id="opt-platform-tabs">
+          <button class="opt-platform-tab" data-platform="bluesky">BlueSky</button>
+          <button class="opt-platform-tab" data-platform="facebook">Facebook</button>
           <button class="opt-platform-tab active" data-platform="instagram">Instagram</button>
           <button class="opt-platform-tab" data-platform="tiktok">TikTok</button>
           <button class="opt-platform-tab" data-platform="twitter">X (Twitter)</button>
           <button class="opt-platform-tab" data-platform="youtube">YouTube</button>
-          <button class="opt-platform-tab" data-platform="bluesky">BlueSky</button>
-          <button class="opt-platform-tab" data-platform="facebook">Facebook</button>
         </div>
       </div>
 
@@ -196,7 +196,7 @@
                 <option value="facebook">Facebook</option>
                 <option value="instagram">Instagram</option>
                 <option value="tiktok">TikTok</option>
-                <option value="twitter">X</option>
+                <option value="twitter">X (Twitter)</option>
                 <option value="youtube">YouTube</option>
               </select>
               <select id="filter-status" class="glass-select">
@@ -721,6 +721,6 @@ service cloud.firestore {
   </div>
 
   <!-- Core App Scripts -->
-  <script src="app.js?v=3.8"></script>
+  <script src="app.js?v=3.9"></script>
 </body>
 </html>

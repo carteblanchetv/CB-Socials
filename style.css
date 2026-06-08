@@ -124,8 +124,8 @@ body {
   padding: 0.65rem 1.25rem;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-y: auto;
   gap: 0.65rem;
 }
 
@@ -282,7 +282,7 @@ body {
   gap: 1rem;
   align-items: stretch;
   flex: 1;
-  min-height: 0;
+  min-height: 600px;
 }
 
 .dashboard-left-col {
@@ -1819,6 +1819,51 @@ textarea {
   border-radius: 20px;
   white-space: nowrap;
 }
+
+/* Active broadcast week header highlight */
+.story-date-header--active-week {
+  background: rgba(16, 185, 129, 0.08);
+  border-left: 2px solid var(--color-success);
+}
+
+.story-date-header--active-week .story-date-label {
+  color: var(--color-success);
+}
+
+.story-date-header--active-week .story-date-label strong {
+  color: var(--color-success);
+}
+
+/* TBC / Unlinked header */
+.story-date-header--tbc {
+  background: rgba(245, 158, 11, 0.06);
+  border-left: 2px solid var(--color-warning);
+}
+
+/* Active broadcast week badge */
+.active-week-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 0.12rem 0.5rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  animation: pulse-badge 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+
 
 .story-card {
   background: var(--card-bg);

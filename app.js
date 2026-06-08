@@ -128,13 +128,28 @@ const MOCK_COPY_LIBRARY = [
 ];
 
 const SEED_STORIES = [
+  // ── TBC / Unlinked ─────────────────────────────────────────────────────────
+  { id: 'story-tbc-1', txDate: 'TBC', title: 'UNTITLED STORY DRAFT', legalNote: '', copyVersions: ['Placeholder copy — update with story details and assign a TX date when confirmed.'], updatedAt: new Date().toISOString() },
+
+  // ── 14 JUNE 2026 ───────────────────────────────────────────────────────────
+  { id: 'story-7', txDate: '14 JUN 2026', title: 'STORY TITLE — 14 JUNE', legalNote: '', copyVersions: ['Copy version 1 for 14 June story — update after import.', 'Copy version 2 for 14 June story — update after import.'], updatedAt: new Date().toISOString() },
+
+  // ── 7 JUNE 2026 ────────────────────────────────────────────────────────────
+  { id: 'story-6a', txDate: '7 JUN 2026', title: 'STORY TITLE — 7 JUNE', legalNote: '', copyVersions: ['Copy version 1 for 7 June story — update after import.', 'Copy version 2 for 7 June story — update after import.'], updatedAt: new Date().toISOString() },
+
+  // ── 31 MAY 2026 ────────────────────────────────────────────────────────────
   { id: 'story-1', txDate: '31 MAY 2026', title: 'WRATH OF THE BREEDE', legalNote: '', copyVersions: ['Mud-caked cellars, uprooted trellises, vast expanses of vineyard reduced to swampland. The historic Robertson Wine Valley rebuilds after historic floods.', 'A legacy built by generations of farmers, threatened by historic floods in a matter of hours. What can be saved from the wreckage?', 'It tore through the valley with a force locals have never seen before. More than a million bottles of wine destroyed - livelihoods and legacies threatened. But the community\'s spirit is harder to wash away.'], updatedAt: new Date().toISOString() },
   { id: 'story-2', txDate: '31 MAY 2026', title: 'UNCOOPERATIVE COOPERATIVE', legalNote: 'No mention of Anweskus anywhere (even the filenames, please)', copyVersions: ['They packed up their lives and moved to a remote farm in search of self-governance. But this great trek is ending, for some, in tears.', 'Communal living on the remote West Coast. For some, a dream come true. But now, neighbours are turning on each other in a bitter fight for survival.', 'They were promised an Afrikaner utopia - freedom, ownership and work. Families put everything on the line - but now they are trapped in limbo.', 'It began as a dream of land, work and independence. Families invested everything. But was this remote cooperative ever even legal?'], updatedAt: new Date().toISOString() },
   { id: 'story-3', txDate: '31 MAY 2026', title: 'SKATE A NATION', legalNote: '', copyVersions: ['A skateboard, a stranger, and a journey that went viral - as crowds gather, communities rally and South Africans show up for something good.', 'An American skater set out from Uganda to cross Africa for charity. When his Ugandan teammates were denied SA visas, he pushed on alone. Then South Africa showed up.', 'What does it look like when a community decides to show up? A US skateboarder witnessed the spirit of South Africa.'], updatedAt: new Date().toISOString() },
+
+  // ── 24 MAY 2026 ────────────────────────────────────────────────────────────
   { id: 'story-4', txDate: '24 MAY 2026', title: 'CONTRACT FOR VIOLENCE?', legalNote: 'No mention of Ensure anywhere (even the filenames, please)', copyVersions: ['Brutally beaten, driven away... Months later, he\'s still missing. An isolated incident, or a pattern of violence in plain sight?', 'A public security contract, reports of beatings, and a disappearance. A case of rogue officers, or a campaign of violence?', 'Reports of beatings - then, a brutal assault caught on camera. But no one has been charged. Is a security company targeting activists?', 'An alleged pattern of violence emerges on Durban\'s streets. Activists say warnings were ignored. Are authorities turning a blind eye?'], updatedAt: new Date().toISOString() },
   { id: 'story-5', txDate: '24 MAY 2026', title: 'VENEZUELA: A NATION REAWAKENS', legalNote: '', copyVersions: ['Its authoritarian president is gone, but Venezuela\'s future remains unwritten. A fragile new era of hope and uncertainty.', 'A South African teacher living in Caracas witnessed a nation in collapse... Now, through his eyes, we see Venezuela standing at a crossroads.', 'It\'s a country historically plagued by poverty, inflation and authoritarian government. Now, its future is in flux. A new era is beginning.'], updatedAt: new Date().toISOString() },
+
+  // ── 17 MAY 2026 ────────────────────────────────────────────────────────────
   { id: 'story-6', txDate: '17 MAY 2026', title: 'SHERIFF SHAMBLES', legalNote: '', copyVersions: ['A deep dive into the world of sheriffs where allegations of corruption have surfaced. But the Minister of Justice says there is nothing to see here.', 'They\'re the enforcement arm of the courts, and it can be a lucrative position. But insiders say all is not well in the world of sheriffs.', 'Allegations against a vital arm of the justice system... The minister insists they hold no water. Who holds the truth?'], updatedAt: new Date().toISOString() }
 ];
+
 
 // Firebase Client References & Initialization
 let firebaseApp = null;
