@@ -292,13 +292,13 @@ body {
 }
 
 .panel-scheduler {
-  flex: 0 0 auto;
-  max-height: 48%;
+  flex: 1 1 45%;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .panel-copy-hub {
-  flex: 1 1 0%;
+  flex: 1 1 50%;
   min-height: 0;
 }
 
