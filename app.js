@@ -219,7 +219,8 @@ let appState = {
   importedAnalytics: loadStoredData('cbsocials_analytics', []),
   calendarNotes: loadStoredData('cbsocials_calendar_notes', []),
   currentCalendarDate: new Date(),
-  calendarPlatformFilter: 'all'
+  calendarPlatformFilter: 'all',
+  calendarViewMode: 'week'
 };
 
 // Save state to LocalStorage
@@ -1371,8 +1372,8 @@ function initEvents() {
       elements.hubTabStories.classList.toggle('active', hub === 'stories');
       elements.hubTabDrafts.classList.toggle('active', hub === 'drafts');
       
-      elements.hubPanelStories.style.display = hub === 'stories' ? 'block' : 'none';
-      elements.hubPanelDrafts.style.display = hub === 'drafts' ? 'block' : 'none';
+      elements.hubPanelStories.style.display = hub === 'stories' ? 'flex' : 'none';
+      elements.hubPanelDrafts.style.display = hub === 'drafts' ? 'flex' : 'none';
     });
   });
 
@@ -1679,16 +1680,34 @@ function initEvents() {
   // Calendar Events
   if (elements.btnCalendarPrev) {
     elements.btnCalendarPrev.addEventListener('click', () => {
-      appState.currentCalendarDate.setMonth(appState.currentCalendarDate.getMonth() - 1);
+      if (appState.calendarViewMode === 'week') {
+        appState.currentCalendarDate.setDate(appState.currentCalendarDate.getDate() - 7);
+      } else {
+        appState.currentCalendarDate.setMonth(appState.currentCalendarDate.getMonth() - 1);
+      }
       renderCalendar();
     });
   }
   if (elements.btnCalendarNext) {
     elements.btnCalendarNext.addEventListener('click', () => {
-      appState.currentCalendarDate.setMonth(appState.currentCalendarDate.getMonth() + 1);
+      if (appState.calendarViewMode === 'week') {
+        appState.currentCalendarDate.setDate(appState.currentCalendarDate.getDate() + 7);
+      } else {
+        appState.currentCalendarDate.setMonth(appState.currentCalendarDate.getMonth() + 1);
+      }
       renderCalendar();
     });
   }
+
+  // Calendar View Toggles
+  document.querySelectorAll('.calendar-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.calendar-view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      appState.calendarViewMode = btn.dataset.view;
+      renderCalendar();
+    });
+  });
   if (elements.calendarNoteForm) {
     elements.calendarNoteForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -2360,31 +2379,94 @@ function renderCalendar() {
   const year = d.getFullYear();
   const month = d.getMonth();
   
+  // Sync view button active class
+  document.querySelectorAll('.calendar-view-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === appState.calendarViewMode);
+  });
+  
+  // Update nav tooltips
+  if (elements.btnCalendarPrev) {
+    elements.btnCalendarPrev.title = appState.calendarViewMode === 'week' ? 'Previous Week' : 'Previous Month';
+  }
+  if (elements.btnCalendarNext) {
+    elements.btnCalendarNext.title = appState.calendarViewMode === 'week' ? 'Next Week' : 'Next Month';
+  }
+
+  let daysToRender = [];
   const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-  elements.calendarMonthTitle.textContent = `${monthNames[month]} ${year}`;
-  
-  elements.calendarGrid.innerHTML = '';
-  
-  const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
-  const totalDays = new Date(year, month + 1, 0).getDate();
-  
-  for (let i = 0; i < firstDayIndex; i++) {
-    const emptyCell = document.createElement('div');
-    emptyCell.className = 'calendar-day empty';
-    elements.calendarGrid.appendChild(emptyCell);
+  const monthShorts = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+  if (appState.calendarViewMode === 'week') {
+    // Week view: Find Monday of current calendar date week
+    const current = new Date(d);
+    const day = current.getDay();
+    const diff = current.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(current.setDate(diff));
+    
+    for (let i = 0; i < 7; i++) {
+      const nextDay = new Date(monday);
+      nextDay.setDate(monday.getDate() + i);
+      daysToRender.push({
+        date: nextDay,
+        isEmpty: false,
+        dayNum: nextDay.getDate(),
+        month: nextDay.getMonth(),
+        year: nextDay.getFullYear()
+      });
+    }
+    
+    const mon = daysToRender[0].date;
+    const sun = daysToRender[6].date;
+    let headerText = '';
+    if (mon.getFullYear() !== sun.getFullYear()) {
+      headerText = `${mon.getDate()} ${monthShorts[mon.getMonth()]} ${mon.getFullYear()} - ${sun.getDate()} ${monthShorts[sun.getMonth()]} ${sun.getFullYear()}`;
+    } else if (mon.getMonth() !== sun.getMonth()) {
+      headerText = `${mon.getDate()} ${monthShorts[mon.getMonth()]} - ${sun.getDate()} ${monthShorts[sun.getMonth()]} ${mon.getFullYear()}`;
+    } else {
+      headerText = `${mon.getDate()} - ${sun.getDate()} ${monthShorts[mon.getMonth()]} ${mon.getFullYear()}`;
+    }
+    elements.calendarMonthTitle.textContent = headerText;
+  } else {
+    // Month view
+    elements.calendarMonthTitle.textContent = `${monthNames[month]} ${year}`;
+    const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    
+    for (let i = 0; i < firstDayIndex; i++) {
+      daysToRender.push({ isEmpty: true });
+    }
+    for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+      daysToRender.push({
+        date: new Date(year, month, dayNum),
+        isEmpty: false,
+        dayNum,
+        month,
+        year
+      });
+    }
   }
   
+  elements.calendarGrid.innerHTML = '';
   const today = new Date();
-  for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+  
+  daysToRender.forEach(dayInfo => {
+    if (dayInfo.isEmpty) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'calendar-day empty';
+      elements.calendarGrid.appendChild(emptyCell);
+      return;
+    }
+    
+    const { date, dayNum, month: m, year: y } = dayInfo;
     const dayCell = document.createElement('div');
     dayCell.className = 'calendar-day';
     
-    const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === dayNum;
+    const isToday = today.getFullYear() === y && today.getMonth() === m && today.getDate() === dayNum;
     if (isToday) {
       dayCell.classList.add('today');
     }
     
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
     const note = appState.calendarNotes.find(n => n.date === dateStr);
     
     let noteHtml = '';
@@ -2430,7 +2512,7 @@ function renderCalendar() {
         </button>
       </div>
       ${noteHtml}
-      <div class="calendar-day-posts" style="display:flex; flex-direction:column; gap:0.2rem; width:100%; margin-top:0.1rem;">
+      <div class="calendar-day-posts">
         ${postsHtml}
       </div>
     `;
@@ -2484,7 +2566,7 @@ function renderCalendar() {
     });
     
     elements.calendarGrid.appendChild(dayCell);
-  }
+  });
 }
 
 function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms, targetDate = null) {
