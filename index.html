@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=3.3">
+  <link rel="stylesheet" href="style.css?v=3.4">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -71,61 +71,53 @@
       </div>
     </header>
 
-    <!-- Main Grid Workspace -->
-    <main class="dashboard-grid">
-      
-      <div class="dashboard-left-col" style="display: flex; flex-direction: column; gap: 1.5rem; min-width: 0;">
-        <!-- Panel 1: Scheduler & Time suggestions -->
-        <section class="grid-panel panel-scheduler" id="panel-scheduler">
-        <div class="panel-header">
-          <div>
-            <h2 class="panel-title">Posting Schedule Optimiser</h2>
-            <p class="panel-subtitle">Engage your audience at peak activity times</p>
-          </div>
-        </div>
-
-        <!-- Optimization Data Mode Selector -->
-        <div class="optimizer-mode-container">
+    <!-- Top Bar: Posting Schedule Optimiser -->
+    <section class="grid-panel panel-scheduler-top" id="panel-scheduler">
+      <div class="opt-top-group-1">
+        <h2 class="panel-title-compact">Optimiser</h2>
+        <div class="optimizer-mode-container" style="margin: 0;">
           <div class="mode-toggle-glass">
             <button class="mode-btn active" id="mode-industry">Benchmarks</button>
             <button class="mode-btn" id="mode-custom">My Analytics</button>
           </div>
         </div>
+      </div>
 
-        <!-- Weekly Tabs -->
-        <div class="day-tabs-container">
-          <div class="day-tabs" id="day-tabs-list">
-            <button class="day-tab active" data-day="Mon">Mon</button>
-            <button class="day-tab" data-day="Tue">Tue</button>
-            <button class="day-tab" data-day="Wed">Wed</button>
-            <button class="day-tab" data-day="Thu">Thu</button>
-            <button class="day-tab" data-day="Fri">Fri</button>
-            <button class="day-tab" data-day="Sat">Sat</button>
-            <button class="day-tab" data-day="Sun">Sun</button>
-          </div>
+      <div class="day-tabs-container" style="padding: 0; margin: 0;">
+        <div class="day-tabs" id="day-tabs-list">
+          <button class="day-tab active" data-day="Mon">Mon</button>
+          <button class="day-tab" data-day="Tue">Tue</button>
+          <button class="day-tab" data-day="Wed">Wed</button>
+          <button class="day-tab" data-day="Thu">Thu</button>
+          <button class="day-tab" data-day="Fri">Fri</button>
+          <button class="day-tab" data-day="Sat">Sat</button>
+          <button class="day-tab" data-day="Sun">Sun</button>
         </div>
+      </div>
 
-        <!-- Suggestions Grid -->
-        <div class="suggestions-grid" id="suggestions-grid">
-          <!-- Dynamically populated suggestions cards -->
-        </div>
+      <div class="suggestions-grid" id="suggestions-grid">
+        <!-- Dynamically populated suggestions cards -->
+      </div>
 
-        <!-- CSV Dropzone -->
-        <div class="csv-upload-zone" id="csv-dropzone">
-          <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
-          <div class="csv-upload-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </div>
-          <span class="csv-upload-text">Drop analytics CSV or <strong style="color: var(--primary); cursor: pointer;" id="csv-browse-trigger">browse</strong></span>
-          <span class="csv-upload-subtitle">Supports X, TikTok, YouTube & Meta exports</span>
-        </div>
+      <div class="csv-upload-zone-compact" id="csv-dropzone">
+        <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+        <button class="btn btn-outline btn-sm" id="csv-browse-trigger" title="Upload analytics CSV" style="padding: 0.45rem 0.75rem; font-size: 0.75rem;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.25rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          CSV Upload
+        </button>
+      </div>
+    </section>
 
-        <!-- Copy Library -->
-        <div class="copy-library-container" id="copy-library-container">
-          <div class="copy-library-header">
+    <!-- Main Grid Workspace -->
+    <main class="dashboard-grid">
+      
+      <div class="dashboard-left-col" style="display: flex; flex-direction: column; gap: 1.5rem; min-width: 0;">
+        <!-- Panel 1: Copy Library -->
+        <section class="grid-panel panel-copy-library" id="panel-copy-library">
+          <div class="panel-header">
             <div>
-              <h3 class="copy-library-title">Copy Library</h3>
-              <p class="copy-library-subtitle">Your living bank of social copy</p>
+              <h2 class="panel-title">Copy Library</h2>
+              <p class="panel-subtitle">Your living bank of social copy</p>
             </div>
             <button class="btn btn-primary btn-sm" id="btn-add-copy-item">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -153,8 +145,7 @@
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             <p>No copy yet. Hit <strong>Add Copy</strong> to start your library.</p>
           </div>
-        </div>
-      </section>
+        </section>
 
       <!-- Panel 2: Stories Copy Hub -->
       <section class="grid-panel panel-copy-hub" id="panel-copy-hub">
@@ -744,6 +735,6 @@ service cloud.firestore {
   </div>
 
   <!-- Core App Scripts -->
-  <script src="app.js?v=3.3"></script>
+  <script src="app.js?v=3.4"></script>
 </body>
 </html>
