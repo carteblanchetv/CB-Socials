@@ -681,7 +681,7 @@ function updatePushOptimumTimes(plat, dateVal) {
   
   if (suggestions.length > 0) {
     container.innerHTML = `
-      <span style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-right:0.25rem;">Optimum:</span>
+      <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; margin-right:0.35rem;">Optimum:</span>
     `;
     suggestions.forEach(tStr => {
       const timeVal = convertTo24h(tStr);
@@ -692,9 +692,10 @@ function updatePushOptimumTimes(plat, dateVal) {
         background: rgba(255,255,255,0.06);
         border: 1px solid var(--border-glass);
         color: var(--text-secondary);
-        font-size: 0.62rem;
-        padding: 0.1rem 0.35rem;
-        border-radius: 4px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0.25rem 0.65rem;
+        border-radius: 6px;
         cursor: pointer;
         transition: all 0.15s ease;
       `;
