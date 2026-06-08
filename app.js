@@ -1303,65 +1303,67 @@ function initEvents() {
   });
 
   // ── Copy Library Events ───────────────────────────────────────────────────
-  elements.btnAddCopyItem.addEventListener('click', () => openCopyItemModal());
+  if (elements.btnAddCopyItem) {
+    elements.btnAddCopyItem.addEventListener('click', () => openCopyItemModal());
 
-  elements.btnCopyItemModalClose.addEventListener('click', closeCopyItemModal);
-  elements.btnCopyItemCancel.addEventListener('click', closeCopyItemModal);
+    elements.btnCopyItemModalClose.addEventListener('click', closeCopyItemModal);
+    elements.btnCopyItemCancel.addEventListener('click', closeCopyItemModal);
 
-  window.addEventListener('click', (e) => {
-    if (e.target === elements.copyItemModal) closeCopyItemModal();
-  });
+    window.addEventListener('click', (e) => {
+      if (e.target === elements.copyItemModal) closeCopyItemModal();
+    });
 
-  // Live char counter in copy library modal
-  elements.copyItemFormText.addEventListener('input', () => {
-    const len = elements.copyItemFormText.value.length;
-    elements.copyItemCharCount.textContent = `${len} character${len !== 1 ? 's' : ''}`;
-  });
+    // Live char counter in copy library modal
+    elements.copyItemFormText.addEventListener('input', () => {
+      const len = elements.copyItemFormText.value.length;
+      elements.copyItemCharCount.textContent = `${len} character${len !== 1 ? 's' : ''}`;
+    });
 
-  // Category filter pills
-  elements.copyLibFilters.querySelectorAll('.copy-filter-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      elements.copyLibFilters.querySelectorAll('.copy-filter-pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-      appState.activeCopyFilter = pill.dataset.filter;
+    // Category filter pills
+    elements.copyLibFilters.querySelectorAll('.copy-filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        elements.copyLibFilters.querySelectorAll('.copy-filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        appState.activeCopyFilter = pill.dataset.filter;
+        renderCopyLibrary();
+      });
+    });
+
+    // Copy Library form submit
+    elements.copyItemForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const id = elements.copyItemFormId.value;
+      const title = elements.copyItemFormTitle.value.trim();
+      const category = elements.copyItemFormCategory.value;
+      const text = elements.copyItemFormText.value.trim();
+      const platforms = [];
+      document.querySelectorAll('input[name="copy-item-platforms"]:checked').forEach(cb => {
+        platforms.push(cb.value);
+      });
+
+      if (id) {
+        // Edit existing
+        const idx = appState.copyLibrary.findIndex(c => c.id === id);
+        if (idx !== -1) {
+          appState.copyLibrary[idx] = { id, title, category, platforms, text, updatedAt: new Date().toISOString() };
+          showToast('Copy updated!');
+        }
+      } else {
+        // Add new
+        appState.copyLibrary.unshift({
+          id: `copy-${Date.now()}`,
+          title, category, platforms, text,
+          updatedAt: new Date().toISOString()
+        });
+        showToast('Copy added to library!');
+      }
+
+      saveCopyLibrary();
+      closeCopyItemModal();
       renderCopyLibrary();
     });
-  });
-
-  // Copy Library form submit
-  elements.copyItemForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-
-    const id = elements.copyItemFormId.value;
-    const title = elements.copyItemFormTitle.value.trim();
-    const category = elements.copyItemFormCategory.value;
-    const text = elements.copyItemFormText.value.trim();
-    const platforms = [];
-    document.querySelectorAll('input[name="copy-item-platforms"]:checked').forEach(cb => {
-      platforms.push(cb.value);
-    });
-
-    if (id) {
-      // Edit existing
-      const idx = appState.copyLibrary.findIndex(c => c.id === id);
-      if (idx !== -1) {
-        appState.copyLibrary[idx] = { id, title, category, platforms, text, updatedAt: new Date().toISOString() };
-        showToast('Copy updated!');
-      }
-    } else {
-      // Add new
-      appState.copyLibrary.unshift({
-        id: `copy-${Date.now()}`,
-        title, category, platforms, text,
-        updatedAt: new Date().toISOString()
-      });
-      showToast('Copy added to library!');
-    }
-
-    saveCopyLibrary();
-    closeCopyItemModal();
-    renderCopyLibrary();
-  });
+  }
 
   // ── Stories Hub Events ───────────────────────────────────────────────────
   // Hub tab switching
@@ -1812,6 +1814,7 @@ function closeCopyItemModal() {
 
 // ── Copy Library Renderer ─────────────────────────────────────────────────────
 function renderCopyLibrary() {
+  if (!elements.copyLibraryList) return;
   const filter = appState.activeCopyFilter;
   const items = appState.copyLibrary.filter(c => filter === 'all' || c.category === filter);
 
