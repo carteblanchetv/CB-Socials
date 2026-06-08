@@ -1006,9 +1006,9 @@ function updateStats() {
   const scheduled = appState.posts.filter(p => p.status === 'Scheduled').length;
   const published = appState.posts.filter(p => p.status === 'Published').length;
 
-  elements.countTotal.textContent = total;
-  elements.countScheduled.textContent = scheduled;
-  elements.countPublished.textContent = published;
+  if (elements.countTotal) elements.countTotal.textContent = total;
+  if (elements.countScheduled) elements.countScheduled.textContent = scheduled;
+  if (elements.countPublished) elements.countPublished.textContent = published;
 }
 
 // 7. Modal Handlers
