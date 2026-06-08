@@ -1729,7 +1729,15 @@ textarea {
   box-shadow: 0 2px 8px var(--primary-glow);
 }
 
-#hub-panel-stories, #hub-panel-drafts {
+#hub-panel-stories {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+#hub-panel-drafts {
+  display: none;
   flex-direction: column;
   flex: 1;
   min-height: 0;
