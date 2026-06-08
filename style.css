@@ -2543,6 +2543,39 @@ textarea {
   box-shadow: 0 2px 6px var(--primary-glow);
 }
 
+/* Platform-specific active colours for optimiser platform tabs */
+.opt-platform-tab.active[data-platform="instagram"] {
+  background: linear-gradient(45deg, var(--color-instagram-start), var(--color-instagram-end));
+  border-color: var(--color-instagram-end);
+  box-shadow: 0 2px 8px rgba(214, 41, 118, 0.45);
+}
+.opt-platform-tab.active[data-platform="tiktok"] {
+  background: var(--color-tiktok);
+  border-color: var(--color-tiktok);
+  color: #000;
+  box-shadow: 0 2px 8px rgba(0, 242, 234, 0.4);
+}
+.opt-platform-tab.active[data-platform="youtube"] {
+  background: var(--color-youtube);
+  border-color: var(--color-youtube);
+  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.4);
+}
+.opt-platform-tab.active[data-platform="facebook"] {
+  background: var(--color-facebook);
+  border-color: var(--color-facebook);
+  box-shadow: 0 2px 8px rgba(24, 119, 242, 0.4);
+}
+.opt-platform-tab.active[data-platform="bluesky"] {
+  background: var(--color-bluesky);
+  border-color: var(--color-bluesky);
+  box-shadow: 0 2px 8px rgba(0, 133, 255, 0.4);
+}
+.opt-platform-tab.active[data-platform="twitter"] {
+  background: #000;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
 /* Time Pills suggestions grid in Top Bar Row 3 */
 .panel-scheduler-top .suggestions-grid {
   display: flex;
