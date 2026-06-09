@@ -1322,6 +1322,35 @@ function initEvents() {
           id, title, text, platforms, scheduledDate: date, scheduledTime: time, status
         };
         showToast('Draft updated successfully!');
+
+        // Update story copy version tags if we find a matching story copy version
+        const matchingStory = appState.stories.find(s => 
+          (s.copyVersions || []).some(cv => getCopyVersionText(cv) === text)
+        );
+        if (matchingStory) {
+          const cvIdx = matchingStory.copyVersions.findIndex(cv => getCopyVersionText(cv) === text);
+          if (cvIdx !== -1) {
+            let cvObj = matchingStory.copyVersions[cvIdx];
+            if (typeof cvObj === 'string') {
+              cvObj = { text: cvObj, platforms: [] };
+              matchingStory.copyVersions[cvIdx] = cvObj;
+            }
+            if (!cvObj.platforms) cvObj.platforms = [];
+            
+            let updated = false;
+            platforms.forEach(plat => {
+              if (!cvObj.platforms.includes(plat)) {
+                cvObj.platforms.push(plat);
+                updated = true;
+              }
+            });
+            
+            if (updated) {
+              saveStories();
+              renderStoriesHub();
+            }
+          }
+        }
       }
     } else {
       // Create new
