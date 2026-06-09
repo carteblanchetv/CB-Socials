@@ -203,6 +203,19 @@ function initFirebase() {
       console.error('Failed to initialize Firebase client:', e);
     }
   }
+// Safe localStorage parsing helper
+function loadStoredData(key, fallback) {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Return parsed value if it is not null
+      if (parsed !== null) return parsed;
+    }
+  } catch (e) {
+    console.error(`Error parsing stored data for key "${key}":`, e);
+  }
+  return fallback;
 }
 
 function getMergedStories() {
