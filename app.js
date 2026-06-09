@@ -203,6 +203,8 @@ function initFirebase() {
       console.error('Failed to initialize Firebase client:', e);
     }
   }
+}
+
 // Safe localStorage parsing helper
 function loadStoredData(key, fallback) {
   try {
