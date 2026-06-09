@@ -1904,16 +1904,17 @@ textarea {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  background: rgba(255, 180, 0, 0.08);
-  border: 1px solid rgba(255, 180, 0, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   border-radius: 7px;
   padding: 0.45rem 0.65rem;
   font-size: 0.71rem;
-  color: #ffcc44;
+  color: #f87171;
   line-height: 1.4;
 }
 
-.story-legal-note svg { color: #ffcc44; flex-shrink: 0; margin-top: 0.05rem; }
+.story-legal-note svg { color: #f87171; flex-shrink: 0; margin-top: 0.05rem; }
+
 
 .story-copies-list {
   display: flex;

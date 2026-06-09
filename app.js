@@ -129,13 +129,22 @@ const MOCK_COPY_LIBRARY = [
 
 const SEED_STORIES = [
   // ── TBC / Unlinked ─────────────────────────────────────────────────────────
-  { id: 'story-tbc-1', txDate: 'TBC', title: 'UNTITLED STORY DRAFT', legalNote: '', copyVersions: ['Placeholder copy — update with story details and assign a TX date when confirmed.'], updatedAt: new Date().toISOString() },
+  { id: 'story-tbc-1', txDate: 'TBC', title: 'BECOMING DUMA', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-tbc-2', txDate: 'TBC', title: 'CLONED NUMBER PLATES', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-tbc-3', txDate: 'TBC', title: 'VILLAGE OF WITCHES', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-tbc-4', txDate: 'TBC', title: 'MADLANGA 101', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-tbc-5', txDate: 'TBC', title: 'LONELINESS CLUB', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-tbc-6', txDate: 'TBC', title: 'PASSION IN ACTION', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
 
   // ── 14 JUNE 2026 ───────────────────────────────────────────────────────────
-  { id: 'story-7', txDate: '14 JUN 2026', title: 'STORY TITLE — 14 JUNE', legalNote: '', copyVersions: ['Copy version 1 for 14 June story — update after import.', 'Copy version 2 for 14 June story — update after import.'], updatedAt: new Date().toISOString() },
+  { id: 'story-jun14-1', txDate: '14 JUN 2026', title: 'REFORESTING THE CEDERBERG', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-jun14-2', txDate: '14 JUN 2026', title: 'ROAD TO NOWHERE', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-jun14-3', txDate: '14 JUN 2026', title: 'THIRST TRAP', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
 
   // ── 7 JUNE 2026 ────────────────────────────────────────────────────────────
-  { id: 'story-6a', txDate: '7 JUN 2026', title: 'STORY TITLE — 7 JUNE', legalNote: '', copyVersions: ['Copy version 1 for 7 June story — update after import.', 'Copy version 2 for 7 June story — update after import.'], updatedAt: new Date().toISOString() },
+  { id: 'story-jun7-1', txDate: '7 JUN 2026', title: 'FUTURE CLINIC', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-jun7-2', txDate: '7 JUN 2026', title: 'KILLER MIDWIFE', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
+  { id: 'story-jun7-3', txDate: '7 JUN 2026', title: 'KIRSTENBOSCH COLLAPSE', legalNote: '', copyVersions: ['Copy to be added — import DOCX or edit this story to add copy versions.'], updatedAt: new Date().toISOString() },
 
   // ── 31 MAY 2026 ────────────────────────────────────────────────────────────
   { id: 'story-1', txDate: '31 MAY 2026', title: 'WRATH OF THE BREEDE', legalNote: '', copyVersions: ['Mud-caked cellars, uprooted trellises, vast expanses of vineyard reduced to swampland. The historic Robertson Wine Valley rebuilds after historic floods.', 'A legacy built by generations of farmers, threatened by historic floods in a matter of hours. What can be saved from the wreckage?', 'It tore through the valley with a force locals have never seen before. More than a million bottles of wine destroyed - livelihoods and legacies threatened. But the community\'s spirit is harder to wash away.'], updatedAt: new Date().toISOString() },
@@ -149,7 +158,6 @@ const SEED_STORIES = [
   // ── 17 MAY 2026 ────────────────────────────────────────────────────────────
   { id: 'story-6', txDate: '17 MAY 2026', title: 'SHERIFF SHAMBLES', legalNote: '', copyVersions: ['A deep dive into the world of sheriffs where allegations of corruption have surfaced. But the Minister of Justice says there is nothing to see here.', 'They\'re the enforcement arm of the courts, and it can be a lucrative position. But insiders say all is not well in the world of sheriffs.', 'Allegations against a vital arm of the justice system... The minister insists they hold no water. Who holds the truth?'], updatedAt: new Date().toISOString() }
 ];
-
 
 // Firebase Client References & Initialization
 let firebaseApp = null;
