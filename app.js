@@ -1365,12 +1365,12 @@ function initEvents() {
             if (!cvObj.platforms) cvObj.platforms = [];
             
             let updated = false;
-            platforms.forEach(plat => {
-              if (!cvObj.platforms.includes(plat)) {
-                cvObj.platforms.push(plat);
-                updated = true;
-              }
-            });
+            const isDifferent = cvObj.platforms.length !== platforms.length || 
+                                !cvObj.platforms.every(p => platforms.includes(p));
+            if (isDifferent) {
+              cvObj.platforms = [...platforms];
+              updated = true;
+            }
             
             if (updated) {
               saveStories();
