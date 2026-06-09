@@ -2502,8 +2502,10 @@ textarea {
 /* Top Bar - Multi-row Posting Schedule Optimiser */
 .panel-scheduler-top {
   display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
   padding: 0.55rem 1.1rem;
   background: var(--bg-panel);
   backdrop-filter: blur(20px);
@@ -2515,6 +2517,29 @@ textarea {
   flex-shrink: 0;
   min-height: 0;
   overflow: hidden;
+}
+
+.opt-left-side {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.opt-middle-side {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.opt-right-side {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .opt-row {
@@ -2536,13 +2561,7 @@ textarea {
 }
 
 .opt-row-label {
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-size: 0.85rem;
-  letter-spacing: 0.03em;
-  min-width: 110px;
-  flex-shrink: 0;
+  display: none !important;
 }
 
 .opt-top-group-1 {
@@ -2566,7 +2585,7 @@ textarea {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .opt-platform-tab {
@@ -2634,7 +2653,7 @@ textarea {
   gap: 0.5rem;
   overflow-x: auto;
   flex: 1;
-  justify-content: flex-end;
+  justify-content: center;
   padding: 0.1rem 0;
   align-items: center;
 }
@@ -2669,22 +2688,16 @@ textarea {
 @media (max-width: 1000px) {
   .panel-scheduler-top {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     gap: 0.75rem;
     height: auto;
+    text-align: center;
   }
-  .opt-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  .opt-row-1 {
-    flex-direction: row;
-    justify-content: space-between;
+  .opt-left-side, .opt-middle-side, .opt-right-side {
+    width: 100%;
+    display: flex;
+    justify-content: center;
     align-items: center;
-  }
-  .opt-row-label {
-    min-width: auto;
   }
 }
 
