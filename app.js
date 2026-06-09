@@ -1291,19 +1291,23 @@ function initEvents() {
   });
 
   // Optimizer Mode Toggles
-  elements.modeIndustry.addEventListener('click', () => {
-    elements.modeIndustry.classList.add('active');
-    elements.modeCustom.classList.remove('active');
-    appState.optimizerMode = 'industry';
-    renderSuggestions();
-  });
+  if (elements.modeIndustry) {
+    elements.modeIndustry.addEventListener('click', () => {
+      elements.modeIndustry.classList.add('active');
+      elements.modeCustom.classList.remove('active');
+      appState.optimizerMode = 'industry';
+      renderSuggestions();
+    });
+  }
 
-  elements.modeCustom.addEventListener('click', () => {
-    elements.modeCustom.classList.add('active');
-    elements.modeIndustry.classList.remove('active');
-    appState.optimizerMode = 'custom';
-    renderSuggestions();
-  });
+  if (elements.modeCustom) {
+    elements.modeCustom.addEventListener('click', () => {
+      elements.modeCustom.classList.add('active');
+      elements.modeIndustry.classList.remove('active');
+      appState.optimizerMode = 'custom';
+      renderSuggestions();
+    });
+  }
 
   // Browse file trigger
   elements.csvBrowseTrigger.addEventListener('click', () => {
