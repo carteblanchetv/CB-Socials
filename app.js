@@ -347,11 +347,51 @@ function saveState() {
 }
 
 function deletePost(id) {
-  appState.posts = appState.posts.filter(p => p.id !== id);
-  if (appState.selectedPreviewPostId === id) {
-    appState.selectedPreviewPostId = null;
+  const post = appState.posts.find(p => p.id === id);
+  if (post) {
+    const storyId = post.storyId;
+    const cvIdx = post.cvIdx;
+    const platforms = post.platforms || [];
+    
+    appState.posts = appState.posts.filter(p => p.id !== id);
+    if (appState.selectedPreviewPostId === id) {
+      appState.selectedPreviewPostId = null;
+    }
+    saveState();
+    
+    // Recalculate and untoggle platforms in the hub if they are no longer scheduled anywhere for this version
+    if (storyId && cvIdx !== undefined) {
+      const story = appState.stories.find(s => s.id === storyId);
+      if (story) {
+        let cvObj = story.copyVersions[cvIdx];
+        if (cvObj && typeof cvObj === 'object' && cvObj.platforms) {
+          let updated = false;
+          platforms.forEach(plat => {
+            const otherScheduled = appState.posts.some(p => 
+              p.storyId === storyId && 
+              p.cvIdx === cvIdx && 
+              p.platforms && p.platforms.includes(plat)
+            );
+            if (!otherScheduled) {
+              const idx = cvObj.platforms.indexOf(plat);
+              if (idx !== -1) {
+                cvObj.platforms.splice(idx, 1);
+                updated = true;
+              }
+            }
+          });
+          
+          if (updated) {
+            saveStories();
+            renderStoriesHub();
+          }
+        }
+      }
+    }
+  } else {
+    appState.posts = appState.posts.filter(p => p.id !== id);
   }
-  saveState();
+  
   renderDrafts();
   renderCalendar();
   renderFeedSimulator();
