@@ -220,21 +220,63 @@ function loadStoredData(key, fallback) {
   return fallback;
 }
 
+function cleanDuplicateStories(storiesList) {
+  if (!Array.isArray(storiesList)) return [];
+  
+  const titleGroups = {};
+  storiesList.forEach(s => {
+    if (!s.title) return;
+    const key = s.title.trim().toUpperCase();
+    if (!titleGroups[key]) titleGroups[key] = [];
+    titleGroups[key].push(s);
+  });
+
+  const cleaned = [];
+  Object.keys(titleGroups).forEach(key => {
+    const group = titleGroups[key];
+    if (group.length <= 1) {
+      cleaned.push(...group);
+    } else {
+      // Find if there is a populated one (without the placeholder copy)
+      const populated = group.filter(s => {
+        const firstCopy = s.copyVersions && s.copyVersions[0];
+        const hasPlaceholder = firstCopy && (
+          (typeof firstCopy === 'string' && firstCopy.includes('Copy to be added')) ||
+          (typeof firstCopy === 'object' && firstCopy.text && firstCopy.text.includes('Copy to be added'))
+        );
+        return !hasPlaceholder;
+      });
+
+      if (populated.length > 0) {
+        // Keep only the populated version(s)
+        cleaned.push(...populated);
+      } else {
+        // All are placeholder versions, keep the first one
+        cleaned.push(group[0]);
+      }
+    }
+  });
+  
+  return cleaned;
+}
+
 function getMergedStories() {
   let loaded = loadStoredData('cbsocials_stories', SEED_STORIES);
   if (!Array.isArray(loaded)) {
     loaded = SEED_STORIES;
   }
   
-  // Ensure every seed story exists in the loaded list
+  let cleaned = cleanDuplicateStories(loaded);
+  
+  // Ensure every seed story exists in the cleaned list (by title)
   SEED_STORIES.forEach(seed => {
-    const exists = loaded.some(s => s.id === seed.id || (s.title && s.title.toUpperCase() === seed.title.toUpperCase() && s.txDate === seed.txDate));
+    const exists = cleaned.some(s => s.id === seed.id || (s.title && s.title.trim().toUpperCase() === seed.title.trim().toUpperCase()));
     if (!exists) {
-      loaded.push({ ...seed });
+      cleaned.push({ ...seed });
     }
   });
   
-  return loaded.map(s => {
+  return cleaned.map(s => {
     if (s.txDate) s.txDate = normalizeDateString(s.txDate);
     return s;
   });
@@ -3398,20 +3440,37 @@ function setupRealtimeSubscription() {
         });
       });
       
+      // Filter out duplicate placeholder versions from Firestore snapshot
+      const cleanedSnapshot = cleanDuplicateStories(updatedStories);
+      
+      // If duplicates were found and filtered out, delete them from Firestore
+      if (cleanedSnapshot.length < updatedStories.length) {
+        console.log('Detected duplicate placeholder stories in Firestore snapshot. Cleaning cloud...');
+        const idsToKeep = new Set(cleanedSnapshot.map(s => s.id));
+        updatedStories.forEach(s => {
+          if (!idsToKeep.has(s.id)) {
+            firestoreDb.collection('stories').doc(s.id).delete()
+              .then(() => console.log(`Deleted duplicate seed story ${s.title} (${s.id}) from Firestore`))
+              .catch(e => console.error('Error deleting duplicate from Firestore:', e));
+          }
+        });
+      }
+      
       if (appState.isDirty) {
         console.log('Local changes are unsynced (dirty state). Skipping cloud override and uploading local state...');
         saveStories();
         return;
       }
       
-      if (updatedStories.length > 0) {
-        if (updatedStories.length >= appState.stories.length) {
+      const localStoriesCleaned = cleanDuplicateStories(appState.stories);
+      if (cleanedSnapshot.length > 0) {
+        if (cleanedSnapshot.length >= localStoriesCleaned.length) {
           // Override local stories list with Cloud Database snapshot
-          appState.stories = updatedStories;
+          appState.stories = cleanedSnapshot;
           localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
           renderStoriesHub();
           isFirstLoad = false;
-          console.log('Firebase Firestore snapshot synchronized. Total:', updatedStories.length);
+          console.log('Firebase Firestore snapshot synchronized and cleaned. Total:', cleanedSnapshot.length);
         } else {
           // Local state has more stories than the cloud (likely a pending local upload).
           // Push local stories to the cloud to ensure all users receive the latest set.
