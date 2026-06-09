@@ -2079,6 +2079,10 @@ textarea {
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
+.cv-platform-toggle.active[data-platform="tiktok"] {
+  color: #000 !important;
+  text-shadow: none !important;
+}
 
 /* TBC / Unlinked Header Styles */
 .story-date-header--tbc {

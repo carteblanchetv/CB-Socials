@@ -6,7 +6,7 @@ const PLATFORMS_CONFIG = {
   facebook: { name: 'Facebook', limit: 63206, color: 'var(--color-facebook)', icon: `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>` },
   instagram: { name: 'Instagram', limit: 2200, color: 'var(--color-instagram-end)', icon: `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>` },
   bluesky: { name: 'BlueSky', limit: 300, color: 'var(--color-bluesky)', icon: `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 11.272c-1.233-1.636-3.834-4.63-7.556-7.054C2.39 2.802 0 1.274 0 3.518c0 1.547.773 4.636 2.39 7.053 1.233 1.638 2.467 2.32 3.864 2.32C4.856 12.891 3.62 13.57 2.39 15.21c-1.617 2.417-2.39 5.506-2.39 7.053 0 2.244 2.39.716 4.444-1.303 3.722-2.424 6.323-5.418 7.556-7.054 1.233 1.636 3.834 4.63 7.556 7.054 2.054 2.02 4.444 3.547 4.444 1.303 0-1.547-.773-4.636-2.39-7.053-1.233-1.638-2.467-2.32-3.864-2.32 1.398 0 2.632-.68 3.864-2.32 1.617-2.417 2.39-5.506 2.39-7.053 0-2.244-2.39-.716-4.444 1.303-3.722 2.424-6.323 5.418-7.556 7.054z"/></svg>` },
-  tiktok: { name: 'TikTok', limit: 2200, color: 'var(--color-tiktok-accent)', icon: `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.03 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.52-4.06-1.37-.28-.2-.53-.43-.77-.68-.07 2.64-.02 5.28-.05 7.92-.09 2.11-.69 4.25-2.15 5.82-1.6 1.77-4.14 2.53-6.49 2.22-2.7-.31-5.12-2.22-5.99-4.83-1.07-3.05-.12-6.7 2.41-8.63 1.58-1.24 3.62-1.83 5.64-1.63v4.03c-1.12-.13-2.31.11-3.19.83-.93.73-1.38 1.99-1.2 3.16.19 1.41 1.37 2.59 2.79 2.77 1.53.22 3.15-.65 3.68-2.11.23-.62.29-1.29.28-1.95.01-4.73-.01-9.46.01-14.19z"/></svg>` },
+  tiktok: { name: 'TikTok', limit: 2200, color: 'var(--color-tiktok)', icon: `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.03 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.52-4.06-1.37-.28-.2-.53-.43-.77-.68-.07 2.64-.02 5.28-.05 7.92-.09 2.11-.69 4.25-2.15 5.82-1.6 1.77-4.14 2.53-6.49 2.22-2.7-.31-5.12-2.22-5.99-4.83-1.07-3.05-.12-6.7 2.41-8.63 1.58-1.24 3.62-1.83 5.64-1.63v4.03c-1.12-.13-2.31.11-3.19.83-.93.73-1.38 1.99-1.2 3.16.19 1.41 1.37 2.59 2.79 2.77 1.53.22 3.15-.65 3.68-2.11.23-.62.29-1.29.28-1.95.01-4.73-.01-9.46.01-14.19z"/></svg>` },
   youtube: { name: 'YouTube', limit: 5000, color: 'var(--color-youtube)', icon: `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.518 3.5 12 3.5 12 3.5s-7.518 0-9.388.553a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11C4.482 20.5 12 20.5 12 20.5s7.518 0 9.388-.553a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>` }
 };
 
@@ -211,13 +211,22 @@ function loadStoredData(key, fallback) {
     const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Return parsed value if it is not null
       if (parsed !== null) return parsed;
     }
   } catch (e) {
     console.error(`Error parsing stored data for key "${key}":`, e);
   }
   return fallback;
+}
+
+function cleanTextForMatching(t) {
+  if (!t) return '';
+  return t.trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .toLowerCase();
 }
 
 function isSimilarTitle(titleA, titleB) {
@@ -1318,22 +1327,40 @@ function initEvents() {
       // Edit post
       const index = appState.posts.findIndex(p => p.id === id);
       if (index !== -1) {
+        const originalPost = appState.posts[index];
         appState.posts[index] = {
-          id, title, text, platforms, scheduledDate: date, scheduledTime: time, status
+          ...originalPost,
+          title, text, platforms, scheduledDate: date, scheduledTime: time, status
         };
         showToast('Draft updated successfully!');
 
-        // Update story copy version tags if we find a matching story copy version
-        const matchingStory = appState.stories.find(s => 
-          (s.copyVersions || []).some(cv => getCopyVersionText(cv) === text)
-        );
-        if (matchingStory) {
-          const cvIdx = matchingStory.copyVersions.findIndex(cv => getCopyVersionText(cv) === text);
-          if (cvIdx !== -1) {
-            let cvObj = matchingStory.copyVersions[cvIdx];
+        // Update story copy version tags
+        let storyId = originalPost.storyId;
+        let cvIdx = originalPost.cvIdx;
+        
+        // Fallback for older posts or minor edits: match by cleaned text
+        if (!storyId || cvIdx === undefined) {
+          const cleanText = cleanTextForMatching(text);
+          const matchingStory = appState.stories.find(s => 
+            (s.copyVersions || []).some(cv => cleanTextForMatching(getCopyVersionText(cv)) === cleanText)
+          );
+          if (matchingStory) {
+            storyId = matchingStory.id;
+            cvIdx = matchingStory.copyVersions.findIndex(cv => cleanTextForMatching(getCopyVersionText(cv)) === cleanText);
+            
+            // Retroactively set storyId and cvIdx on the post object
+            appState.posts[index].storyId = storyId;
+            appState.posts[index].cvIdx = cvIdx;
+          }
+        }
+
+        if (storyId && cvIdx !== undefined) {
+          const story = appState.stories.find(s => s.id === storyId);
+          if (story) {
+            let cvObj = story.copyVersions[cvIdx];
             if (typeof cvObj === 'string') {
               cvObj = { text: cvObj, platforms: [] };
-              matchingStory.copyVersions[cvIdx] = cvObj;
+              story.copyVersions[cvIdx] = cvObj;
             }
             if (!cvObj.platforms) cvObj.platforms = [];
             
@@ -1588,6 +1615,8 @@ function initEvents() {
         
         const newPost = {
           id: `post-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          storyId: story.id,
+          cvIdx: cvIdx,
           title: `${story.title} (${plat.toUpperCase()})`,
           text,
           platforms: [plat],
