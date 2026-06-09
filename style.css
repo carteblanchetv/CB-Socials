@@ -4,9 +4,9 @@
   --bg-panel: rgba(5, 30, 48, 0.55);
   --border-glass: rgba(255, 255, 255, 0.08);
   --border-focus: rgba(255, 255, 255, 0.25);
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-primary: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
   --shadow-main: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --card-bg: rgba(255, 255, 255, 0.03);
   --card-hover-bg: rgba(255, 255, 255, 0.07);
@@ -1037,7 +1037,7 @@ body {
 }
 
 .sim-fb-time {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   color: #b0b3b8;
 }
 
@@ -1364,7 +1364,7 @@ textarea {
 }
 
 .csv-upload-subtitle {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 
@@ -1501,7 +1501,7 @@ textarea {
 }
 
 .copy-library-subtitle {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   margin-top: 0.1rem;
 }
@@ -1515,9 +1515,9 @@ textarea {
 
 .copy-filter-pill {
   font-family: inherit;
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.22rem 0.65rem;
+  padding: 0.3rem 0.8rem;
   border-radius: 20px;
   border: 1px solid var(--border-glass);
   background: transparent;
@@ -1582,7 +1582,7 @@ textarea {
 }
 
 .copy-lib-category-tag {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1593,7 +1593,7 @@ textarea {
 }
 
 .copy-lib-time {
-  font-size: 0.63rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 
@@ -1800,18 +1800,18 @@ textarea {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
 }
 
 .story-date-label strong {
   color: var(--text-primary);
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   letter-spacing: 0.02em;
 }
 
 .story-count-badge {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--primary);
   background: var(--primary-glow);
@@ -1845,7 +1845,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.58rem;
+  font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2540,7 +2540,7 @@ textarea {
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  font-size: 0.65rem;
+  font-size: 0.85rem;
   letter-spacing: 0.03em;
   min-width: 110px;
   flex-shrink: 0;
@@ -2555,7 +2555,7 @@ textarea {
 
 .panel-title-compact {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.98rem;
   font-weight: 700;
   color: var(--text-primary);
   text-transform: uppercase;
@@ -2576,9 +2576,9 @@ textarea {
   border-radius: 8px;
   color: var(--text-secondary);
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 0.25rem 0.65rem;
+  padding: 0.35rem 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -2646,9 +2646,9 @@ textarea {
   border-radius: 6px;
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 0.3rem 0.7rem;
+  padding: 0.4rem 0.85rem;
   cursor: pointer;
   display: flex;
   align-items: center;

@@ -2643,7 +2643,7 @@ function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms, targetDa
     wrapper.innerHTML = `
       <input type="checkbox" name="push-platforms" value="${plat}" ${isChecked ? 'checked' : ''}>
       <span class="checkbox-custom"></span>
-      <span class="platform-name" style="font-size: 0.7rem;">${nameLabel}</span>
+      <span class="platform-name" style="font-size: 0.85rem;">${nameLabel}</span>
     `;
     
     wrapper.querySelector('input').addEventListener('change', () => {
@@ -2714,10 +2714,10 @@ function renderPushCalendarInputs() {
       
       platRow.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:0.5rem;">
-          <span class="push-calendar-platform-badge" style="background: ${config.color}; font-size:0.62rem; padding:0.12rem 0.38rem; border-radius:4px; color:#fff; font-weight:700;">${nameLetter} (${config.name})</span>
+          <span class="push-calendar-platform-badge" style="background: ${config.color}; font-size:0.8rem; padding:0.2rem 0.5rem; border-radius:4px; color:#fff; font-weight:700;">${nameLetter} (${config.name})</span>
           <div class="push-calendar-inputs" style="display:flex; gap:0.4rem; align-items:center;">
-            <input type="date" id="push-date-${plat}" name="push-date-${plat}" value="${defaultDate}" required style="font-size:0.75rem; padding:0.15rem 0.35rem; border-radius:4px; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
-            <input type="time" id="push-time-${plat}" name="push-time-${plat}" value="09:00" required style="font-size:0.75rem; padding:0.15rem 0.35rem; border-radius:4px; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
+            <input type="date" id="push-date-${plat}" name="push-date-${plat}" value="${defaultDate}" required style="font-size:0.85rem; padding:0.25rem 0.45rem; border-radius:4px; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
+            <input type="time" id="push-time-${plat}" name="push-time-${plat}" value="09:00" required style="font-size:0.85rem; padding:0.25rem 0.45rem; border-radius:4px; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
           </div>
         </div>
         <div class="push-optimum-times" id="push-optimum-${plat}" style="display:flex; flex-wrap:wrap; gap:0.25rem; align-items:center; padding-left:0.1rem; margin-top:0.15rem;">
