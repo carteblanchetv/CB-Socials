@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cb-socials-cache-v9';
+const CACHE_NAME = 'cb-socials-cache-v10';
 
 self.addEventListener('install', (event) => {
   // Force the waiting service worker to become the active service worker
@@ -12,22 +12,30 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
+  const url = new URL(request.url);
   
-  // Only intercept GET requests for local assets (HTML, CSS, JS) to bypass CDN/Browser cache
+  // Do NOT intercept the main HTML page, styles, or application scripts
+  // This ensures browser-level refreshes/hard-refreshes hit the network/CDN directly.
+  if (
+    url.pathname === '/' ||
+    url.pathname.endsWith('index.html') ||
+    url.pathname.endsWith('style.css') ||
+    url.pathname.endsWith('app.js') ||
+    url.pathname.endsWith('sw.js')
+  ) {
+    return; // Let the browser handle it natively
+  }
+
+  // Intercept other local assets if needed
   if (
     request.method === 'GET' && 
-    request.url.startsWith(self.location.origin) &&
-    !request.url.includes('sw.js')
+    request.url.startsWith(self.location.origin)
   ) {
-    const url = new URL(request.url);
-    // Append a cache-busting timestamp to the network fetch request only
     url.searchParams.set('_cb_nocache', Date.now().toString());
-    
     event.respondWith(
       fetch(url.toString(), {
         cache: 'no-store'
       }).catch(() => {
-        // Offline fallback: try fetching the original cached/normal request
         return fetch(request);
       })
     );
