@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4.13">
+  <link rel="stylesheet" href="style.css?v=4.14">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -700,8 +700,16 @@ service cloud.firestore {
           <label for="db-firebase-config" style="font-size:0.75rem; margin-bottom:0.3rem;">Firebase Config (JSON)</label>
           <textarea id="db-firebase-config" placeholder='{
   "apiKey": "AIzaSy...",
-            <button type="submit" class="btn btn-primary">Save Notes</button>
-          </div>
+  "authDomain": "your-project.firebaseapp.com",
+  "projectId": "your-project",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "...",
+  "appId": "..."
+}' style="font-size:0.8rem; padding:0.45rem; width:100%; height:150px; font-family:monospace; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); border-radius:6px; color:var(--text-primary); resize:vertical;"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-db-settings-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Connect</button>
         </div>
       </form>
     </div>
@@ -747,6 +755,6 @@ service cloud.firestore {
     </div>
   </div>
 
-  <script src="app.js?v=4.13"></script>
+  <script src="app.js?v=4.14"></script>
 </body>
 </html>
