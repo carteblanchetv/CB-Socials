@@ -1506,6 +1506,29 @@ function initEvents() {
         
         appState.posts.unshift(newPost);
       });
+
+      // Synchronize chosen platform(s) to the copy version's tagged platforms in the hub
+      if (story.copyVersions && story.copyVersions[cvIdx]) {
+        let cvObj = story.copyVersions[cvIdx];
+        if (typeof cvObj === 'string') {
+          cvObj = { text: cvObj, platforms: [] };
+          story.copyVersions[cvIdx] = cvObj;
+        }
+        if (!cvObj.platforms) cvObj.platforms = [];
+        
+        let updated = false;
+        selectedPlatforms.forEach(plat => {
+          if (!cvObj.platforms.includes(plat)) {
+            cvObj.platforms.push(plat);
+            updated = true;
+          }
+        });
+        
+        if (updated) {
+          saveStories();
+          renderStoriesHub();
+        }
+      }
       
       saveState();
       renderDrafts();

@@ -2702,6 +2702,33 @@ textarea {
   }
 }
 
+/* Light mode overrides for container switchers and buttons readability */
+[data-theme="light"] .day-tabs,
+[data-theme="light"] .mode-toggle-glass,
+[data-theme="light"] .hub-tab-switcher {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .day-tab,
+[data-theme="light"] .mode-btn,
+[data-theme="light"] .hub-tab {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="light"] .day-tab.active,
+[data-theme="light"] .mode-btn.active,
+[data-theme="light"] .hub-tab.active {
+  color: #ffffff !important;
+  background: var(--primary) !important;
+}
+
+[data-theme="light"] .day-tab:hover,
+[data-theme="light"] .mode-btn:hover,
+[data-theme="light"] .hub-tab:hover {
+  color: var(--text-primary) !important;
+}
+
 
 
 
