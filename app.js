@@ -205,27 +205,29 @@ function initFirebase() {
   }
 }
 
-// Safe localStorage parsing helper
-function loadStoredData(key, fallback) {
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Return parsed value if it is not null
-      if (parsed !== null) return parsed;
-    }
-  } catch (e) {
-    console.error(`Error parsing stored data for key "${key}":`, e);
+function getMergedStories() {
+  let loaded = loadStoredData('cbsocials_stories', SEED_STORIES);
+  if (!Array.isArray(loaded)) {
+    loaded = SEED_STORIES;
   }
-  return fallback;
+  
+  // Ensure every seed story exists in the loaded list
+  SEED_STORIES.forEach(seed => {
+    const exists = loaded.some(s => s.id === seed.id || (s.title && s.title.toUpperCase() === seed.title.toUpperCase() && s.txDate === seed.txDate));
+    if (!exists) {
+      loaded.push({ ...seed });
+    }
+  });
+  
+  return loaded.map(s => {
+    if (s.txDate) s.txDate = normalizeDateString(s.txDate);
+    return s;
+  });
 }
 
 let appState = {
   posts: loadStoredData('cbsocials_posts', MOCK_POSTS),
-  stories: loadStoredData('cbsocials_stories', SEED_STORIES).map(s => {
-    if (s.txDate) s.txDate = normalizeDateString(s.txDate);
-    return s;
-  }),
+  stories: getMergedStories(),
   isDirty: localStorage.getItem('cbsocials_stories_dirty') === 'true',
   storySearch: '',
   collapsedGroups: new Set(loadStoredData('cbsocials_collapsed_groups', [])),
@@ -3236,7 +3238,7 @@ async function initAuth() {
     }
     
     // Restore stories from local storage
-    appState.stories = loadStoredData('cbsocials_stories', SEED_STORIES);
+    appState.stories = getMergedStories();
     renderStoriesHub();
     return;
   }
