@@ -700,22 +700,22 @@ service cloud.firestore {
           <label for="db-firebase-config" style="font-size:0.75rem; margin-bottom:0.3rem;">Firebase Config (JSON)</label>
           <textarea id="db-firebase-config" placeholder='{
   "apiKey": "AIzaSy...",
-  "authDomain": "your-project.firebaseapp.com",
-  "projectId": "your-project",
-  "storageBucket": "your-project.appspot.com",
-  "messagingSenderId": "...",
-  "appId": "..."
-}' style="font-size:0.8rem; padding:0.45rem; width:100%; height:150px; font-family:monospace; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); border-radius:6px; color:var(--text-primary); resize:vertical;"></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-outline" id="btn-db-settings-cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save & Connect</button>
+            <button type="submit" class="btn btn-primary">Save Notes</button>
+          </div>
         </div>
       </form>
     </div>
   </div>
 
-</div>
+  <!-- Push to Calendar Modal -->
+  <div class="modal-overlay" id="push-calendar-modal" style="display:none;">
+    <div class="modal-glass" style="max-width:550px; max-height:85vh; overflow-y:auto;">
+      <div class="modal-header">
+        <h3 id="push-calendar-modal-title">Schedule Copy to Calendar</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-push-calendar-close" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
       <form id="push-calendar-form">
         <input type="hidden" id="push-calendar-story-id">
         <input type="hidden" id="push-calendar-cv-idx">
@@ -915,6 +915,6 @@ service cloud.firestore {
     <span class="toast-message">Copied to clipboard!</span>
   </div>
 
-  <script src="app.js?v=4.6"></script>
+  <script src="app.js?v=4.8"></script>
 </body>
 </html>
