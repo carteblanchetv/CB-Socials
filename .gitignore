@@ -1,0 +1,5 @@
+node_modules/
+package.json
+package-lock.json
+*.docx
+export_to_docx.js

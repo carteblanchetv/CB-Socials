@@ -220,20 +220,41 @@ function loadStoredData(key, fallback) {
   return fallback;
 }
 
+function isSimilarTitle(titleA, titleB) {
+  if (!titleA || !titleB) return false;
+  const a = titleA.trim().toUpperCase();
+  const b = titleB.trim().toUpperCase();
+  if (a === b) return true;
+  
+  if (a.includes('/') && a.split('/').map(part => part.trim()).some(part => part === b)) {
+    return true;
+  }
+  if (b.includes('/') && b.split('/').map(part => part.trim()).some(part => part === a)) {
+    return true;
+  }
+  
+  if (a.startsWith(b) && (a[b.length] === ' ' || a[b.length] === '/')) return true;
+  if (b.startsWith(a) && (b[a.length] === ' ' || b[a.length] === '/')) return true;
+  
+  return false;
+}
+
 function cleanDuplicateStories(storiesList) {
   if (!Array.isArray(storiesList)) return [];
   
-  const titleGroups = {};
+  const groups = [];
   storiesList.forEach(s => {
     if (!s.title) return;
-    const key = s.title.trim().toUpperCase();
-    if (!titleGroups[key]) titleGroups[key] = [];
-    titleGroups[key].push(s);
+    let foundGroup = groups.find(g => isSimilarTitle(g[0].title, s.title));
+    if (foundGroup) {
+      foundGroup.push(s);
+    } else {
+      groups.push([s]);
+    }
   });
 
   const cleaned = [];
-  Object.keys(titleGroups).forEach(key => {
-    const group = titleGroups[key];
+  groups.forEach(group => {
     if (group.length <= 1) {
       cleaned.push(...group);
     } else {
@@ -268,9 +289,9 @@ function getMergedStories() {
   
   let cleaned = cleanDuplicateStories(loaded);
   
-  // Ensure every seed story exists in the cleaned list (by title)
+  // Ensure every seed story exists in the cleaned list (by title similarity)
   SEED_STORIES.forEach(seed => {
-    const exists = cleaned.some(s => s.id === seed.id || (s.title && s.title.trim().toUpperCase() === seed.title.trim().toUpperCase()));
+    const exists = cleaned.some(s => s.id === seed.id || isSimilarTitle(s.title, seed.title));
     if (!exists) {
       cleaned.push({ ...seed });
     }
