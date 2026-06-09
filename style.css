@@ -2533,6 +2533,7 @@ textarea {
 
 .opt-row-2, .opt-row-3 {
   font-size: 0.72rem;
+  justify-content: space-between;
 }
 
 .opt-row-label {
@@ -2566,6 +2567,7 @@ textarea {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .opt-platform-tab {
@@ -2633,6 +2635,7 @@ textarea {
   gap: 0.5rem;
   overflow-x: auto;
   flex: 1;
+  justify-content: flex-end;
   padding: 0.1rem 0;
   align-items: center;
 }
