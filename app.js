@@ -932,8 +932,9 @@ function renderDrafts() {
   const query = appState.searchQuery.toLowerCase();
   
   const filteredPosts = appState.posts.filter(post => {
+    if (!post) return false;
     const matchesSearch = post.title.toLowerCase().includes(query) || post.text.toLowerCase().includes(query);
-    const matchesPlatform = appState.filterPlatform === 'all' || post.platforms.includes(appState.filterPlatform);
+    const matchesPlatform = appState.filterPlatform === 'all' || (post.platforms && post.platforms.includes(appState.filterPlatform));
     const matchesStatus = appState.filterStatus === 'all' || post.status === appState.filterStatus;
     
     return matchesSearch && matchesPlatform && matchesStatus;
@@ -954,7 +955,8 @@ function renderDrafts() {
     
     // Character Limit checks
     let limitBadgesHTML = '';
-    post.platforms.forEach(plat => {
+    const platformsList = post.platforms || [];
+    platformsList.forEach(plat => {
       const config = PLATFORMS_CONFIG[plat];
       if (!config) return;
       const count = post.text.length;
@@ -986,7 +988,7 @@ function renderDrafts() {
       <div class="draft-body">${escapeHtml(post.text)}</div>
       
       <div class="draft-platforms">
-        ${post.platforms.map(plat => {
+        ${platformsList.map(plat => {
           const config = PLATFORMS_CONFIG[plat];
           return `<span class="mini-badge" style="background: ${config.color}">${config.name}</span>`;
         }).join('')}
@@ -1208,7 +1210,7 @@ function openEditPostModal(id) {
 
   // Check boxes for platforms
   document.querySelectorAll('input[name="form-platforms"]').forEach(cb => {
-    cb.checked = post.platforms.includes(cb.value);
+    cb.checked = (post.platforms || []).includes(cb.value);
   });
 
   elements.modalTitle.textContent = 'Edit Copy Draft';
@@ -2829,172 +2831,177 @@ function renderCalendar() {
   const today = new Date();
   
   daysToRender.forEach(dayInfo => {
-    if (dayInfo.isEmpty) {
-      const emptyCell = document.createElement('div');
-      emptyCell.className = 'calendar-day empty';
-      elements.calendarGrid.appendChild(emptyCell);
-      return;
-    }
-    
-    const { date, dayNum, month: m, year: y } = dayInfo;
-    const dayCell = document.createElement('div');
-    dayCell.className = 'calendar-day';
-    
-    const isToday = today.getFullYear() === y && today.getMonth() === m && today.getDate() === dayNum;
-    if (isToday) {
-      dayCell.classList.add('today');
-    }
-    
-    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-    const note = appState.calendarNotes.find(n => n.date === dateStr);
-    
-    let noteHtml = '';
-    if (note && note.text) {
-      dayCell.classList.add('calendar-day-has-note');
-      noteHtml = `<div class="calendar-day-note-preview" title="${escapeHtml(note.text)}">${escapeHtml(note.text)}</div>`;
-    }
-    
-    // Scheduled posts for this day
-    let dayPosts = appState.posts.filter(p => p.scheduledDate === dateStr);
-    if (appState.calendarPlatformFilter && appState.calendarPlatformFilter !== 'all') {
-      dayPosts = dayPosts.filter(p => p.platforms.includes(appState.calendarPlatformFilter));
-    }
-    // Sort chronologically from earliest to latest
-    dayPosts.sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
-    
-    let postsHtml = dayPosts.map(p => {
-      const badgesHtml = p.platforms.map(pl => {
-        let nameLetter = '';
-        if (pl === 'twitter') nameLetter = 'X';
-        else if (pl === 'bluesky') nameLetter = 'BS';
-        else if (pl === 'instagram') nameLetter = 'IG';
-        else if (pl === 'facebook') nameLetter = 'FB';
-        else if (pl === 'tiktok') nameLetter = 'TT';
-        else if (pl === 'youtube') nameLetter = 'YT';
-        return `<span class="calendar-post-badge ${pl}">${nameLetter}</span>`;
+    try {
+      if (dayInfo.isEmpty) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-day empty';
+        elements.calendarGrid.appendChild(emptyCell);
+        return;
+      }
+      
+      const { date, dayNum, month: m, year: y } = dayInfo;
+      const dayCell = document.createElement('div');
+      dayCell.className = 'calendar-day';
+      
+      const isToday = today.getFullYear() === y && today.getMonth() === m && today.getDate() === dayNum;
+      if (isToday) {
+        dayCell.classList.add('today');
+      }
+      
+      const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      const note = appState.calendarNotes.find(n => n.date === dateStr);
+      
+      let noteHtml = '';
+      if (note && note.text) {
+        dayCell.classList.add('calendar-day-has-note');
+        noteHtml = `<div class="calendar-day-note-preview" title="${escapeHtml(note.text)}">${escapeHtml(note.text)}</div>`;
+      }
+      
+      let dayPosts = appState.posts.filter(p => p && p.scheduledDate === dateStr);
+      if (appState.calendarPlatformFilter && appState.calendarPlatformFilter !== 'all') {
+        dayPosts = dayPosts.filter(p => p.platforms && p.platforms.includes(appState.calendarPlatformFilter));
+      }
+      // Sort chronologically from earliest to latest
+      dayPosts.sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
+      
+      let postsHtml = dayPosts.map(p => {
+        const platformsList = p.platforms || [];
+        const badgesHtml = platformsList.map(pl => {
+          let nameLetter = '';
+          if (pl === 'twitter') nameLetter = 'X';
+          else if (pl === 'bluesky') nameLetter = 'BS';
+          else if (pl === 'instagram') nameLetter = 'IG';
+          else if (pl === 'facebook') nameLetter = 'FB';
+          else if (pl === 'tiktok') nameLetter = 'TT';
+          else if (pl === 'youtube') nameLetter = 'YT';
+          return `<span class="calendar-post-badge ${pl}">${nameLetter}</span>`;
+        }).join('');
+        
+        const isPublished = p.status === 'Published';
+        let statusClass = 'status-scheduled';
+        if (isPublished) {
+          statusClass = 'status-published';
+        } else if (p.status === 'Draft') {
+          statusClass = 'status-draft';
+        }
+        
+        return `
+          <div class="calendar-day-post-preview ${statusClass}" data-post-id="${p.id}" title="${escapeHtml(p.title)}: ${escapeHtml(p.text)}">
+            <div class="calendar-post-header">
+              <span class="post-time">${p.scheduledTime || ''}</span>
+              <div class="calendar-post-actions">
+                <button class="calendar-post-action-btn btn-copy-post" title="Copy Post Copy" data-id="${p.id}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+                <button class="calendar-post-action-btn btn-publish-post ${isPublished ? 'published' : ''}" title="${isPublished ? 'Mark as Scheduled' : 'Mark as Published'}" data-id="${p.id}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </button>
+              </div>
+            </div>
+            <span class="post-title">${escapeHtml(p.title)}</span>
+            <div class="post-badges">${badgesHtml}</div>
+          </div>
+        `;
       }).join('');
       
-      let statusClass = 'status-scheduled';
-      if (p.status === 'Published') {
-        statusClass = 'status-published';
-      } else if (p.status === 'Draft') {
-        statusClass = 'status-draft';
-      }
-      
-      return `
-        <div class="calendar-day-post-preview ${statusClass}" data-post-id="${p.id}" title="${escapeHtml(p.title)}: ${escapeHtml(p.text)}">
-          <div class="calendar-post-header">
-            <span class="post-time">${p.scheduledTime || ''}</span>
-            <div class="calendar-post-actions">
-              <button class="calendar-post-action-btn btn-copy-post" title="Copy Post Copy" data-id="${p.id}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              </button>
-              <button class="calendar-post-action-btn btn-publish-post ${isPublished ? 'published' : ''}" title="${isPublished ? 'Mark as Scheduled' : 'Mark as Published'}" data-id="${p.id}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              </button>
-            </div>
-          </div>
-          <span class="post-title">${escapeHtml(p.title)}</span>
-          <div class="post-badges">${badgesHtml}</div>
+      dayCell.dataset.date = dateStr;
+      dayCell.innerHTML = `
+        <div class="calendar-day-header">
+          <div class="calendar-day-num">${dayNum}</div>
+          <button class="calendar-day-quick-add" title="Quick add upload note" data-date="${dateStr}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+        ${noteHtml}
+        <div class="calendar-day-posts">
+          ${postsHtml}
         </div>
       `;
-    }).join('');
-    
-    dayCell.dataset.date = dateStr;
-    dayCell.innerHTML = `
-      <div class="calendar-day-header">
-        <div class="calendar-day-num">${dayNum}</div>
-        <button class="calendar-day-quick-add" title="Quick add upload note" data-date="${dateStr}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-      </div>
-      ${noteHtml}
-      <div class="calendar-day-posts">
-        ${postsHtml}
-      </div>
-    `;
-    
-    // Drag & drop event listeners for calendar day cell
-    dayCell.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-    });
-    dayCell.addEventListener('dragenter', (e) => {
-      dayCell.classList.add('drag-over');
-    });
-    dayCell.addEventListener('dragleave', () => {
-      dayCell.classList.remove('drag-over');
-    });
-    dayCell.addEventListener('drop', (e) => {
-      dayCell.classList.remove('drag-over');
-      try {
-        const rawData = e.dataTransfer.getData('application/json');
-        if (rawData) {
-          const data = JSON.parse(rawData);
-          if (data && data.storyId && data.cvIdx !== undefined) {
-            const story = appState.stories.find(s => s.id === data.storyId);
-            if (story) {
-              const cv = story.copyVersions[data.cvIdx];
-              const text = getCopyVersionText(cv);
-              const taggedPlatforms = getCopyVersionPlatforms(cv);
-              openPushToCalendarModal(story.id, data.cvIdx, text, taggedPlatforms, dateStr);
+      
+      // Drag & drop event listeners for calendar day cell
+      dayCell.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      });
+      dayCell.addEventListener('dragenter', (e) => {
+        dayCell.classList.add('drag-over');
+      });
+      dayCell.addEventListener('dragleave', () => {
+        dayCell.classList.remove('drag-over');
+      });
+      dayCell.addEventListener('drop', (e) => {
+        dayCell.classList.remove('drag-over');
+        try {
+          const rawData = e.dataTransfer.getData('application/json');
+          if (rawData) {
+            const data = JSON.parse(rawData);
+            if (data && data.storyId && data.cvIdx !== undefined) {
+              const story = appState.stories.find(s => s.id === data.storyId);
+              if (story) {
+                const cv = story.copyVersions[data.cvIdx];
+                const text = getCopyVersionText(cv);
+                const taggedPlatforms = getCopyVersionPlatforms(cv);
+                openPushToCalendarModal(story.id, data.cvIdx, text, taggedPlatforms, dateStr);
+              }
             }
           }
+        } catch (err) {
+          console.error('Error handling copy drop:', err);
         }
-      } catch (err) {
-        console.error('Error handling copy drop:', err);
-      }
-    });
+      });
 
-    dayCell.addEventListener('click', (e) => {
-      const copyBtn = e.target.closest('.btn-copy-post');
-      if (copyBtn) {
-        e.stopPropagation();
-        const postId = copyBtn.dataset.id;
-        const post = appState.posts.find(p => p.id === postId);
-        if (post && post.text) {
-          navigator.clipboard.writeText(post.text).then(() => {
-            showToast('Post copy copied to clipboard!');
-          }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            showToast('Failed to copy post copy.');
-          });
+      dayCell.addEventListener('click', (e) => {
+        const copyBtn = e.target.closest('.btn-copy-post');
+        if (copyBtn) {
+          e.stopPropagation();
+          const postId = copyBtn.dataset.id;
+          const post = appState.posts.find(p => p.id === postId);
+          if (post && post.text) {
+            navigator.clipboard.writeText(post.text).then(() => {
+              showToast('Post copy copied to clipboard!');
+            }).catch(err => {
+              console.error('Failed to copy text: ', err);
+              showToast('Failed to copy post copy.');
+            });
+          }
+          return;
         }
-        return;
-      }
 
-      const publishBtn = e.target.closest('.btn-publish-post');
-      if (publishBtn) {
-        e.stopPropagation();
-        const postId = publishBtn.dataset.id;
-        const post = appState.posts.find(p => p.id === postId);
-        if (post) {
-          post.status = post.status === 'Published' ? 'Scheduled' : 'Published';
-          saveState();
-          renderDrafts();
-          renderCalendar();
-          renderFeedSimulator();
-          showToast(`Post marked as ${post.status.toLowerCase()}.`);
+        const publishBtn = e.target.closest('.btn-publish-post');
+        if (publishBtn) {
+          e.stopPropagation();
+          const postId = publishBtn.dataset.id;
+          const post = appState.posts.find(p => p.id === postId);
+          if (post) {
+            post.status = post.status === 'Published' ? 'Scheduled' : 'Published';
+            saveState();
+            renderDrafts();
+            renderCalendar();
+            renderFeedSimulator();
+            showToast(`Post marked as ${post.status.toLowerCase()}.`);
+          }
+          return;
         }
-        return;
-      }
 
-      const quickAddBtn = e.target.closest('.calendar-day-quick-add');
-      if (quickAddBtn) {
-        e.stopPropagation();
+        const quickAddBtn = e.target.closest('.calendar-day-quick-add');
+        if (quickAddBtn) {
+          e.stopPropagation();
+          openCalendarNoteModal(dateStr, note ? note.text : '');
+          return;
+        }
+        const postCard = e.target.closest('.calendar-day-post-preview');
+        if (postCard) {
+          e.stopPropagation();
+          openEditPostModal(postCard.dataset.postId);
+          return;
+        }
         openCalendarNoteModal(dateStr, note ? note.text : '');
-        return;
-      }
-      const postCard = e.target.closest('.calendar-day-post-preview');
-      if (postCard) {
-        e.stopPropagation();
-        openEditPostModal(postCard.dataset.postId);
-        return;
-      }
-      openCalendarNoteModal(dateStr, note ? note.text : '');
-    });
-    
-    elements.calendarGrid.appendChild(dayCell);
+      });
+      
+      elements.calendarGrid.appendChild(dayCell);
+    } catch (err) {
+      console.error('Error rendering calendar day:', err, dayInfo);
+    }
   });
 }
 
