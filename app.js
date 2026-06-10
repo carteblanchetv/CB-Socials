@@ -364,12 +364,13 @@ function syncCopyVersionPlatformsFromCalendar() {
   renderStoriesHub();
 }
 
-// Save state to LocalStorage
+// Save state to LocalStorage and Firestore
 function saveState() {
   try {
     localStorage.setItem('cbsocials_posts', JSON.stringify(appState.posts));
     updateStats();
     syncCopyVersionPlatformsFromCalendar();
+    savePostsToCloud();
   } catch (e) {
     console.error('Error saving cbsocials_posts:', e);
   }
@@ -387,6 +388,9 @@ function deletePost(id) {
       appState.selectedPreviewPostId = null;
     }
     saveState();
+    if (firestoreDb) {
+      deletePostFromDb(id);
+    }
     
     // Recalculate and untoggle platforms in the hub if they are no longer scheduled anywhere for this version
     if (storyId && cvIdx !== undefined) {
@@ -2563,6 +2567,114 @@ function formatStandardToInputDate(stdDateStr) {
   return `${year}-${month}-${day}`;
 }
 
+// ── Cloud Firestore Posts Sync ───────────────────────────────────────────────
+let postsRealtimeListener = null;
+let isPostsDirty = false;
+
+function setupRealtimePostsSubscription() {
+  if (!firestoreDb || postsRealtimeListener) return;
+  
+  postsRealtimeListener = firestoreDb
+    .collection('cbsocials_posts')
+    .onSnapshot((snapshot) => {
+      const updatedPosts = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        updatedPosts.push({
+          id: doc.id,
+          storyId: data.storyId || null,
+          cvIdx: data.cvIdx !== undefined ? data.cvIdx : null,
+          title: data.title || '',
+          text: data.text || '',
+          platforms: data.platforms || [],
+          scheduledDate: data.scheduledDate || '',
+          scheduledTime: data.scheduledTime || '',
+          status: data.status || 'Draft',
+          updatedAt: data.updatedAt || new Date().toISOString()
+        });
+      });
+      
+      if (isPostsDirty) {
+        console.log('Local posts are unsynced (dirty state). Skipping cloud override...');
+        return;
+      }
+      
+      if (updatedPosts.length > 0) {
+        appState.posts = updatedPosts;
+        localStorage.setItem('cbsocials_posts', JSON.stringify(appState.posts));
+        
+        syncCopyVersionPlatformsFromCalendar();
+        renderDrafts();
+        renderCalendar();
+        renderFeedSimulator();
+        console.log('Firebase Firestore posts synchronized. Total:', updatedPosts.length);
+      } else {
+        const local = localStorage.getItem('cbsocials_posts');
+        let localPosts = [];
+        try {
+          localPosts = local ? JSON.parse(local) : [];
+        } catch (e) {
+          localPosts = [];
+        }
+        if (localPosts.length > 0) {
+          console.log('Cloud has no posts, uploading local posts...');
+          appState.posts = localPosts;
+          savePostsToCloud();
+        } else {
+          appState.posts = MOCK_POSTS;
+          localStorage.setItem('cbsocials_posts', JSON.stringify(appState.posts));
+          savePostsToCloud();
+        }
+      }
+    }, (err) => {
+      console.error('Firebase Firestore posts realtime sync error:', err);
+    });
+}
+
+async function savePostsToCloud() {
+  if (!firebaseAuth || !firestoreDb) return;
+  const user = firebaseAuth.currentUser;
+  if (!user) return;
+  
+  try {
+    isPostsDirty = true;
+    const batch = firestoreDb.batch();
+    
+    appState.posts.forEach(p => {
+      const docRef = firestoreDb.collection('cbsocials_posts').doc(p.id);
+      batch.set(docRef, {
+        id: p.id,
+        storyId: p.storyId || null,
+        cvIdx: p.cvIdx !== undefined ? p.cvIdx : null,
+        title: p.title || '',
+        text: p.text || '',
+        platforms: p.platforms || [],
+        scheduledDate: p.scheduledDate || '',
+        scheduledTime: p.scheduledTime || '',
+        status: p.status || 'Draft',
+        updatedAt: p.updatedAt || new Date().toISOString(),
+        userId: user.uid
+      });
+    });
+    
+    await batch.commit();
+    isPostsDirty = false;
+    console.log('Posts saved to Firebase Firestore successfully.');
+  } catch (err) {
+    console.error('Failed to save posts to Firebase:', err);
+  }
+}
+
+async function deletePostFromDb(postId) {
+  if (!firestoreDb) return;
+  try {
+    await firestoreDb.collection('cbsocials_posts').doc(postId).delete();
+    console.log('Post deleted from Firebase:', postId);
+  } catch (err) {
+    console.error('Error deleting post from Firebase:', err);
+  }
+}
+
 // ── Calendar Notes ────────────────────────────────────────────────────────────
 let calendarRealtimeListener = null;
 
@@ -3548,6 +3660,10 @@ async function initAuth() {
         calendarRealtimeListener();
         calendarRealtimeListener = null;
       }
+      if (postsRealtimeListener) {
+        postsRealtimeListener();
+        postsRealtimeListener = null;
+      }
     } else {
       // User is logged in, hide auth overlay and set status to connected
       elements.authOverlay.style.display = 'none';
@@ -3560,6 +3676,7 @@ async function initAuth() {
       // Listen to realtime updates
       setupRealtimeSubscription();
       setupRealtimeCalendarNotesSubscription();
+      setupRealtimePostsSubscription();
     }
   });
 }
