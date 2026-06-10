@@ -2723,9 +2723,23 @@ function renderCalendar() {
         else if (pl === 'youtube') nameLetter = 'YT';
         return `<span class="calendar-post-badge ${pl}">${nameLetter}</span>`;
       }).join('');
+      
+      const isPublished = p.status === 'Published';
+      const statusClass = isPublished ? 'status-published' : 'status-scheduled';
+      
       return `
-        <div class="calendar-day-post-preview" data-post-id="${p.id}" title="${escapeHtml(p.title)}: ${escapeHtml(p.text)}">
-          <span class="post-time">${p.scheduledTime || ''}</span>
+        <div class="calendar-day-post-preview ${statusClass}" data-post-id="${p.id}" title="${escapeHtml(p.title)}: ${escapeHtml(p.text)}">
+          <div class="calendar-post-header">
+            <span class="post-time">${p.scheduledTime || ''}</span>
+            <div class="calendar-post-actions">
+              <button class="calendar-post-action-btn btn-copy-post" title="Copy Post Copy" data-id="${p.id}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+              <button class="calendar-post-action-btn btn-publish-post ${isPublished ? 'published' : ''}" title="${isPublished ? 'Mark as Scheduled' : 'Mark as Published'}" data-id="${p.id}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </button>
+            </div>
+          </div>
           <span class="post-title">${escapeHtml(p.title)}</span>
           <div class="post-badges">${badgesHtml}</div>
         </div>
@@ -2779,6 +2793,38 @@ function renderCalendar() {
     });
 
     dayCell.addEventListener('click', (e) => {
+      const copyBtn = e.target.closest('.btn-copy-post');
+      if (copyBtn) {
+        e.stopPropagation();
+        const postId = copyBtn.dataset.id;
+        const post = appState.posts.find(p => p.id === postId);
+        if (post && post.text) {
+          navigator.clipboard.writeText(post.text).then(() => {
+            showToast('Post copy copied to clipboard!');
+          }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            showToast('Failed to copy post copy.');
+          });
+        }
+        return;
+      }
+
+      const publishBtn = e.target.closest('.btn-publish-post');
+      if (publishBtn) {
+        e.stopPropagation();
+        const postId = publishBtn.dataset.id;
+        const post = appState.posts.find(p => p.id === postId);
+        if (post) {
+          post.status = post.status === 'Published' ? 'Scheduled' : 'Published';
+          saveState();
+          renderDrafts();
+          renderCalendar();
+          renderFeedSimulator();
+          showToast(`Post marked as ${post.status.toLowerCase()}.`);
+        }
+        return;
+      }
+
       const quickAddBtn = e.target.closest('.calendar-day-quick-add');
       if (quickAddBtn) {
         e.stopPropagation();

@@ -2363,35 +2363,85 @@ textarea {
 
 /* Scheduled Post previews inside calendar cells */
 .calendar-day-post-preview {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   line-height: 1.25;
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-glass);
-  border-left: 2px solid var(--primary);
-  padding: 0.18rem 0.35rem;
+  border-left: 3px solid var(--primary);
+  padding: 0.35rem 0.45rem;
   border-radius: 4px;
   margin-top: 0.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.2rem;
   cursor: pointer;
   transition: all 0.15s ease;
+  position: relative;
 }
 .calendar-day-post-preview:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: var(--border-focus);
 }
+.calendar-day-post-preview.status-published {
+  border-left-color: var(--color-success);
+}
+.calendar-day-post-preview.status-published .post-time {
+  color: var(--color-success);
+}
+.calendar-post-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+.calendar-post-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.calendar-day-post-preview:hover .calendar-post-actions {
+  opacity: 1;
+}
+.calendar-post-action-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-glass);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  padding: 2px 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.calendar-post-action-btn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.calendar-post-action-btn.btn-publish-post.published {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #fff;
+}
+.calendar-post-action-btn.btn-publish-post.published:hover {
+  background: var(--color-success);
+  filter: brightness(1.2);
+}
 .calendar-day-post-preview .post-time {
   font-weight: 700;
   color: var(--primary-hover);
-  font-size: 0.58rem;
+  font-size: 0.65rem;
 }
 .calendar-day-post-preview .post-title {
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 0.7rem;
 }
 .calendar-day-post-preview .post-badges {
   display: flex;
