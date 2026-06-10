@@ -900,7 +900,7 @@ function getNextDateForDay(dayName) {
   const currentDay = today.getDay();
   
   let distance = targetDay - currentDay;
-  if (distance <= 0) distance += 7; // Target day next week
+  if (distance < 0) distance += 7; // Target day next week if it already passed this week
   
   const targetDate = new Date(today);
   targetDate.setDate(today.getDate() + distance);
@@ -913,6 +913,7 @@ function openNewPostModalForSuggested(platform, time12h) {
   // Set values based on suggestion
   elements.formPostDate.value = getNextDateForDay(appState.activeDay);
   elements.formPostTime.value = convertTo24h(time12h);
+  elements.formPostStatus.value = 'Scheduled';
   
   // Set platform checkbox
   document.querySelectorAll('input[name="form-platforms"]').forEach(cb => {
