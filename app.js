@@ -336,11 +336,40 @@ let appState = {
   activeOptimizerPlatform: 'instagram'
 };
 
+// Sync copy version platforms from scheduled posts
+function syncCopyVersionPlatformsFromCalendar() {
+  appState.stories.forEach(story => {
+    if (story.copyVersions) {
+      story.copyVersions.forEach((cv, idx) => {
+        // Find all calendar posts for this story and copy version
+        const posts = appState.posts.filter(p => p.storyId === story.id && p.cvIdx === idx);
+        // Gather all platforms from these posts
+        const activePlatforms = new Set();
+        posts.forEach(p => {
+          if (p.platforms) {
+            p.platforms.forEach(plat => activePlatforms.add(plat));
+          }
+        });
+        
+        // Update the copy version platforms
+        if (typeof cv === 'string') {
+          story.copyVersions[idx] = { text: cv, platforms: Array.from(activePlatforms) };
+        } else {
+          cv.platforms = Array.from(activePlatforms);
+        }
+      });
+    }
+  });
+  saveStories();
+  renderStoriesHub();
+}
+
 // Save state to LocalStorage
 function saveState() {
   try {
     localStorage.setItem('cbsocials_posts', JSON.stringify(appState.posts));
     updateStats();
+    syncCopyVersionPlatformsFromCalendar();
   } catch (e) {
     console.error('Error saving cbsocials_posts:', e);
   }
@@ -2424,13 +2453,21 @@ function renderStoriesHub() {
 
       const platIdx = cv.platforms.indexOf(platform);
       if (platIdx !== -1) {
-        cv.platforms.splice(platIdx, 1);
+        // Toggle off: remove this platform from any scheduled posts on the calendar for this story and copy version
+        appState.posts.forEach(p => {
+          if (p.storyId === storyId && p.cvIdx === cvIdx && p.platforms) {
+            p.platforms = p.platforms.filter(plat => plat !== platform);
+          }
+        });
+        // Remove empty posts (posts with no platforms left)
+        appState.posts = appState.posts.filter(p => p.platforms && p.platforms.length > 0);
+        saveState();
+        renderCalendar();
       } else {
-        cv.platforms.push(platform);
+        // Toggle on: open the push to calendar modal
+        const text = getCopyVersionText(cv);
+        openPushToCalendarModal(storyId, cvIdx, text, [platform]);
       }
-
-      saveStories();
-      renderStoriesHub();
     });
   });
 
