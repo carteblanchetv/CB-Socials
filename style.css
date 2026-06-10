@@ -2389,6 +2389,12 @@ textarea {
 .calendar-day-post-preview.status-published .post-time {
   color: var(--color-success);
 }
+.calendar-day-post-preview.status-draft {
+  border-left-color: var(--color-warning);
+}
+.calendar-day-post-preview.status-draft .post-time {
+  color: var(--color-warning);
+}
 .calendar-post-header {
   display: flex;
   align-items: center;

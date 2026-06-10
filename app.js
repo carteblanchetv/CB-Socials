@@ -2874,8 +2874,12 @@ function renderCalendar() {
         return `<span class="calendar-post-badge ${pl}">${nameLetter}</span>`;
       }).join('');
       
-      const isPublished = p.status === 'Published';
-      const statusClass = isPublished ? 'status-published' : 'status-scheduled';
+      let statusClass = 'status-scheduled';
+      if (p.status === 'Published') {
+        statusClass = 'status-published';
+      } else if (p.status === 'Draft') {
+        statusClass = 'status-draft';
+      }
       
       return `
         <div class="calendar-day-post-preview ${statusClass}" data-post-id="${p.id}" title="${escapeHtml(p.title)}: ${escapeHtml(p.text)}">
