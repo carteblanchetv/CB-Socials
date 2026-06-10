@@ -2449,11 +2449,11 @@ textarea {
   margin-top: 0.15rem;
 }
 .calendar-post-badge {
-  font-size: 0.5rem;
+  font-size: 0.62rem;
   font-weight: 800;
   color: #fff;
-  padding: 0.05rem 0.2rem;
-  border-radius: 2px;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
   text-transform: uppercase;
 }
 .calendar-post-badge.twitter { background: var(--color-twitter); }
