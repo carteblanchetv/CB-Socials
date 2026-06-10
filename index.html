@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4.32">
+  <link rel="stylesheet" href="style.css?v=4.33">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -626,6 +626,12 @@ service cloud.firestore {
     match /stories/{storyId} {
       allow read, write: if request.auth != null;
     }
+    match /calendar_notes/{noteId} {
+      allow read, write: if request.auth != null;
+    }
+    match /cbsocials_posts/{postId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }</code></pre>
           </div>
@@ -757,6 +763,6 @@ service cloud.firestore {
     <span class="toast-message">Copied to clipboard!</span>
   </div>
 
-  <script src="app.js?v=4.32"></script>
+  <script src="app.js?v=4.33"></script>
 </body>
 </html>
