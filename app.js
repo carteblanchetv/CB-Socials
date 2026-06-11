@@ -318,6 +318,7 @@ let appState = {
   isDirty: localStorage.getItem('cbsocials_stories_dirty') === 'true',
   storySearch: '',
   collapsedGroups: new Set(loadStoredData('cbsocials_collapsed_groups', [])),
+  isFirstStoriesLoad: true,
   activeHubTab: 'stories',
   copyLibrary: loadStoredData('cbsocials_copy_library', MOCK_COPY_LIBRARY),
   activeCopyFilter: 'all',
@@ -2256,6 +2257,19 @@ function renderStoriesHub() {
   upcomingSunday.setDate(today.getDate() + diffDays);
   const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   const upcomingSundayStr = `${upcomingSunday.getDate()} ${months[upcomingSunday.getMonth()]} ${upcomingSunday.getFullYear()}`;
+
+  // If this is the initial load, collapse all groups except the Active Broadcast Week
+  if (appState.isFirstStoriesLoad && Object.keys(groups).length > 0) {
+    appState.collapsedGroups.clear();
+    Object.keys(groups).forEach(key => {
+      const isUpcomingActive = key !== 'TBC' && key !== 'UNLINKED' && parseTxDate(key) === parseTxDate(upcomingSundayStr);
+      if (!isUpcomingActive) {
+        appState.collapsedGroups.add(key);
+      }
+    });
+    appState.isFirstStoriesLoad = false;
+    localStorage.setItem('cbsocials_collapsed_groups', JSON.stringify([...appState.collapsedGroups]));
+  }
 
   // Sort groups: place TBC/Unlinked at the absolute top, then chronological descending
   const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
