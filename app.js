@@ -339,7 +339,9 @@ let appState = {
 
 // Sync copy version platforms from scheduled posts
 function syncCopyVersionPlatformsFromCalendar() {
+  const updatedStoryIds = [];
   appState.stories.forEach(story => {
+    let storyUpdated = false;
     if (story.copyVersions) {
       story.copyVersions.forEach((cv, idx) => {
         // Find all calendar posts for this story and copy version
@@ -352,16 +354,29 @@ function syncCopyVersionPlatformsFromCalendar() {
           }
         });
         
-        // Update the copy version platforms
-        if (typeof cv === 'string') {
-          story.copyVersions[idx] = { text: cv, platforms: Array.from(activePlatforms) };
-        } else {
-          cv.platforms = Array.from(activePlatforms);
+        const currentPlats = typeof cv === 'string' ? [] : (cv.platforms || []);
+        const match = currentPlats.length === activePlatforms.size && currentPlats.every(p => activePlatforms.has(p));
+        
+        if (!match) {
+          storyUpdated = true;
+          // Update the copy version platforms
+          if (typeof cv === 'string') {
+            story.copyVersions[idx] = { text: cv, platforms: Array.from(activePlatforms) };
+          } else {
+            cv.platforms = Array.from(activePlatforms);
+          }
         }
       });
     }
+    if (storyUpdated) {
+      story.updatedAt = new Date().toISOString();
+      updatedStoryIds.push(story.id);
+    }
   });
-  saveStories();
+  
+  if (updatedStoryIds.length > 0) {
+    saveStories(updatedStoryIds);
+  }
   renderStoriesHub();
 }
 
@@ -416,7 +431,8 @@ function deletePost(id) {
           });
           
           if (updated) {
-            saveStories();
+            story.updatedAt = new Date().toISOString();
+            saveStories([storyId]);
             renderStoriesHub();
           }
         }
@@ -432,34 +448,51 @@ function deletePost(id) {
   showToast('Post deleted.');
 }
 
-async function saveStories() {
+async function saveStories(storyIds = null, localOnly = false) {
   try {
     appState.isDirty = true;
     localStorage.setItem('cbsocials_stories_dirty', 'true');
     localStorage.setItem('cbsocials_stories', JSON.stringify(appState.stories));
     console.log('Stories saved to localStorage (dirty state). Total:', appState.stories.length);
     
+    if (localOnly) {
+      appState.isDirty = false;
+      localStorage.removeItem('cbsocials_stories_dirty');
+      return;
+    }
+    
     if (firebaseAuth && firestoreDb) {
       const user = firebaseAuth.currentUser;
       if (user) {
-        const chunkSize = 200;
-        for (let i = 0; i < appState.stories.length; i += chunkSize) {
-          const chunk = appState.stories.slice(i, i + chunkSize);
-          const batch = firestoreDb.batch();
-          chunk.forEach(s => {
-            const docRef = firestoreDb.collection('stories').doc(s.id);
-            batch.set(docRef, {
-              id: s.id,
-              txDate: s.txDate ? normalizeDateString(s.txDate) : 'TBC',
-              title: s.title || '',
-              legalNote: s.legalNote || '',
-              copyVersions: s.copyVersions || [],
-              updatedAt: s.updatedAt || new Date().toISOString(),
-              userId: user.uid
-            });
-          });
-          await batch.commit();
+        let storiesToSave = appState.stories;
+        
+        if (storyIds !== null) {
+          const idsSet = new Set(Array.isArray(storyIds) ? storyIds : [storyIds]);
+          storiesToSave = appState.stories.filter(s => idsSet.has(s.id));
         }
+        
+        if (storiesToSave.length > 0) {
+          const chunkSize = 200;
+          for (let i = 0; i < storiesToSave.length; i += chunkSize) {
+            const chunk = storiesToSave.slice(i, i + chunkSize);
+            const batch = firestoreDb.batch();
+            chunk.forEach(s => {
+              const docRef = firestoreDb.collection('stories').doc(s.id);
+              batch.set(docRef, {
+                id: s.id,
+                txDate: s.txDate ? normalizeDateString(s.txDate) : 'TBC',
+                title: s.title || '',
+                legalNote: s.legalNote || '',
+                copyVersions: s.copyVersions || [],
+                updatedAt: s.updatedAt || new Date().toISOString(),
+                userId: user.uid
+              });
+            });
+            await batch.commit();
+          }
+          console.log(`Synced ${storiesToSave.length} stories to Firestore.`);
+        }
+        
         appState.isDirty = false;
         localStorage.removeItem('cbsocials_stories_dirty');
         console.log('Stories synced to Firestore successfully.');
@@ -471,6 +504,7 @@ async function saveStories() {
     showToast('Sync error: ' + e.message);
   }
 }
+
 
 function saveCopyLibrary() {
   localStorage.setItem('cbsocials_copy_library', JSON.stringify(appState.copyLibrary));
@@ -1450,7 +1484,8 @@ function initEvents() {
             }
             
             if (updated) {
-              saveStories();
+              story.updatedAt = new Date().toISOString();
+              saveStories([storyId]);
               renderStoriesHub();
             }
           }
@@ -1723,7 +1758,8 @@ function initEvents() {
         });
         
         if (updated) {
-          saveStories();
+          story.updatedAt = new Date().toISOString();
+          saveStories([story.id]);
           renderStoriesHub();
         }
       }
@@ -1773,6 +1809,7 @@ function initEvents() {
       }
     });
 
+    const targetId = id || `story-${Date.now()}`;
     if (id) {
       const idx = appState.stories.findIndex(s => s.id === id);
       if (idx !== -1) {
@@ -1780,10 +1817,10 @@ function initEvents() {
         showToast('Story updated!');
       }
     } else {
-      appState.stories.unshift({ id: `story-${Date.now()}`, txDate, title, legalNote, copyVersions, updatedAt: new Date().toISOString() });
+      appState.stories.unshift({ id: targetId, txDate, title, legalNote, copyVersions, updatedAt: new Date().toISOString() });
       showToast('Story added!');
     }
-    saveStories();
+    saveStories([targetId]);
     closeStoryModal();
     renderStoriesHub();
   });
@@ -2498,7 +2535,7 @@ function renderStoriesHub() {
       if (!story) return;
       if (confirm(`Delete "${story.title}"? This cannot be undone.`)) {
         appState.stories = appState.stories.filter(s => s.id !== btn.dataset.id);
-        saveStories();
+        saveStories(null, true);
         if (firestoreDb) {
           deleteStoryFromDb(btn.dataset.id);
         }
@@ -3236,6 +3273,7 @@ function handleDocxImport(file) {
       }
       // Merge: add stories not already in state (match by title+date)
       let added = 0;
+      const affectedIds = [];
       stories.forEach(s => {
         const exists = appState.stories.find(existing =>
           existing.title === s.title && existing.txDate === s.txDate
@@ -3243,6 +3281,7 @@ function handleDocxImport(file) {
         if (!exists) {
           appState.stories.push(s);
           added++;
+          affectedIds.push(s.id);
         } else {
           // Update copy versions & legal note (preserving platform assignments where text matches)
           const oldVersions = exists.copyVersions || [];
@@ -3251,10 +3290,11 @@ function handleDocxImport(file) {
             return match ? match : newCvText;
           });
           exists.legalNote = s.legalNote;
-          exists.updatedAt = s.updatedAt;
+          exists.updatedAt = s.updatedAt || new Date().toISOString();
+          affectedIds.push(exists.id);
         }
       });
-      saveStories();
+      saveStories(affectedIds);
       renderStoriesHub();
       showToast(`Imported ${stories.length} stories (${added} new, ${stories.length - added} updated)!`);
     } catch(err) {
