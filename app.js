@@ -2446,7 +2446,7 @@ function renderStoriesHub() {
       const text = getCopyVersionText(cv);
       const taggedPlatforms = getCopyVersionPlatforms(cv);
       
-      openPushToCalendarModal(story.id, cvIdx, text, taggedPlatforms, null, true);
+      openPushToCalendarModal(story.id, cvIdx, text, taggedPlatforms);
     });
   });
 
@@ -2955,7 +2955,7 @@ function renderCalendar() {
                 const cv = story.copyVersions[data.cvIdx];
                 const text = getCopyVersionText(cv);
                 const taggedPlatforms = getCopyVersionPlatforms(cv);
-                openPushToCalendarModal(story.id, data.cvIdx, text, taggedPlatforms, dateStr, true);
+                openPushToCalendarModal(story.id, data.cvIdx, text, taggedPlatforms, dateStr);
               }
             }
           }
@@ -3019,7 +3019,7 @@ function renderCalendar() {
   });
 }
 
-function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms, targetDate = null, defaultToAllIfEmptyOrSingle = false) {
+function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms, targetDate = null) {
   elements.pushCalendarStoryId.value = storyId;
   elements.pushCalendarCvIdx.value = cvIdx;
   elements.pushCalendarCopyPreview.textContent = text;
@@ -3034,14 +3034,8 @@ function openPushToCalendarModal(storyId, cvIdx, text, taggedPlatforms, targetDa
   
   const platformsList = ['bluesky', 'facebook', 'instagram', 'tiktok', 'twitter', 'youtube'];
   
-  // Default to selecting all platforms if the current tagged set is empty or has only 1 platform
-  let initialChecked = taggedPlatforms || [];
-  if (defaultToAllIfEmptyOrSingle && initialChecked.length <= 1) {
-    initialChecked = platformsList;
-  }
-  
   platformsList.forEach(plat => {
-    const isChecked = initialChecked.includes(plat);
+    const isChecked = taggedPlatforms && taggedPlatforms.includes(plat);
     const wrapper = document.createElement('label');
     let themeClass = `${plat}-theme`;
     if (plat === 'twitter') themeClass = 'x-theme';
