@@ -810,6 +810,16 @@
         </button>
       </div>
       <form id="news-form">
+        <!-- Auto-Scrape URL Section -->
+        <div style="background: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.3); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+          <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.35rem; color: var(--color-accent);">Auto-Import from Article Link</label>
+          <div style="display: flex; gap: 0.4rem;">
+            <input type="url" id="news-scrape-url" placeholder="Paste article link (e.g. https://www.news24.com/...)" class="glass-select" style="flex: 1; padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-glass); color: #fff;">
+            <button type="button" id="btn-news-scrape" class="btn btn-primary btn-sm" style="font-size: 0.7rem; padding: 0.35rem 0.75rem; border-radius: 4px;">Auto-Fill</button>
+          </div>
+          <span id="news-scrape-status" style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-top: 0.3rem;">Paste any live news URL above and click Auto-Fill to scrape title, source and text instantly.</span>
+        </div>
+
         <input type="hidden" id="news-form-id">
         <div class="form-row">
           <div class="form-group half-width">

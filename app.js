@@ -2305,6 +2305,113 @@ function initEvents() {
   if (elements.btnNewsCancel) elements.btnNewsCancel.addEventListener('click', closeNewsModal);
   if (elements.btnNewsModalClose) elements.btnNewsModalClose.addEventListener('click', closeNewsModal);
 
+  // Auto-Scrape Article Link Click Handler
+  const btnNewsScrape = document.getElementById('btn-news-scrape');
+  if (btnNewsScrape) {
+    btnNewsScrape.addEventListener('click', async () => {
+      const urlInput = document.getElementById('news-scrape-url');
+      const statusSpan = document.getElementById('news-scrape-status');
+      if (!urlInput || !urlInput.value.trim()) {
+        showToast('Please enter a valid URL first!');
+        return;
+      }
+      
+      const targetUrl = urlInput.value.trim();
+      statusSpan.textContent = 'Contacting proxies and downloading article...';
+      statusSpan.style.color = 'var(--color-accent)';
+      btnNewsScrape.disabled = true;
+      
+      let htmlText = '';
+      let success = false;
+      
+      // Attempt sequential proxy fetches using the timeout-backed PROXY_PROVIDERS chain
+      for (let i = 0; i < PROXY_PROVIDERS.length; i++) {
+        const provider = PROXY_PROVIDERS[i];
+        try {
+          console.log(`[Scrape] Trying proxy (${provider.name}) to fetch: ${targetUrl}`);
+          htmlText = await provider.fetch(targetUrl);
+          success = true;
+          console.log(`[Scrape] Success via ${provider.name}`);
+          break;
+        } catch (e) {
+          console.warn(`[Scrape] ${provider.name} failed for ${targetUrl}: ${e.message}`);
+        }
+      }
+      
+      if (!success || !htmlText) {
+        statusSpan.textContent = 'Failed to extract content. Please copy & paste details manually.';
+        statusSpan.style.color = 'var(--color-danger)';
+        btnNewsScrape.disabled = false;
+        showToast('Auto-Fill failed to fetch content.');
+        return;
+      }
+      
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, "text/html");
+        
+        // Extract title
+        let extractedTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
+                             doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content') ||
+                             doc.title ||
+                             doc.querySelector('title')?.textContent ||
+                             '';
+        extractedTitle = extractedTitle.trim();
+        
+        // Extract description / summary
+        let extractedSummary = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
+                               doc.querySelector('meta[name="twitter:description"]')?.getAttribute('content') ||
+                               doc.querySelector('meta[name="description"]')?.getAttribute('content') ||
+                               '';
+        extractedSummary = extractedSummary.trim();
+        
+        // If summary is empty, grab paragraphs
+        if (!extractedSummary) {
+          const paragraphs = Array.from(doc.querySelectorAll('p')).slice(0, 3);
+          extractedSummary = paragraphs.map(p => p.textContent.trim()).filter(t => t.length > 20).join(' ');
+          if (extractedSummary.length > 250) {
+            extractedSummary = extractedSummary.substring(0, 247) + '...';
+          }
+        }
+        
+        // Extract source
+        let extractedSource = doc.querySelector('meta[property="og:site_name"]')?.getAttribute('content') || '';
+        extractedSource = extractedSource.trim();
+        
+        // Fallback to domain name from URL
+        if (!extractedSource) {
+          try {
+            const parsedUrl = new URL(targetUrl);
+            extractedSource = parsedUrl.hostname.replace('www.', '');
+          } catch (e) {
+            extractedSource = 'External Link';
+          }
+        }
+        
+        // Fill form fields
+        if (extractedTitle && elements.newsFormTitle) {
+          elements.newsFormTitle.value = extractedTitle;
+        }
+        if (extractedSummary && elements.newsFormSummary) {
+          elements.newsFormSummary.value = extractedSummary;
+        }
+        if (elements.newsFormSource) {
+          elements.newsFormSource.value = extractedSource ? `${extractedSource} (${targetUrl})` : targetUrl;
+        }
+        
+        statusSpan.textContent = `Auto-fill complete from ${extractedSource}!`;
+        statusSpan.style.color = '#10b981';
+        showToast('Article details successfully extracted!');
+      } catch (err) {
+        console.error('Error parsing scraped HTML:', err);
+        statusSpan.textContent = 'Failed to parse page content. Copy details manually.';
+        statusSpan.style.color = 'var(--color-danger)';
+      } finally {
+        btnNewsScrape.disabled = false;
+      }
+    });
+  }
+
   // Category filter tabs switching
   elements.newsTabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -2603,6 +2710,14 @@ function openNewsModal(id = null) {
   elements.newsFormSource.value = '';
   elements.newsFormSummary.value = '';
 
+  const scrapeUrlInput = document.getElementById('news-scrape-url');
+  const scrapeStatusSpan = document.getElementById('news-scrape-status');
+  if (scrapeUrlInput) scrapeUrlInput.value = '';
+  if (scrapeStatusSpan) {
+    scrapeStatusSpan.textContent = 'Paste any live news URL above and click Auto-Fill to scrape title, source and text instantly.';
+    scrapeStatusSpan.style.color = 'var(--text-muted)';
+  }
+
   if (id) {
     const item = appState.trackedNewsItems.find(n => n.id === id);
     if (item) {
@@ -2619,6 +2734,13 @@ function openNewsModal(id = null) {
 
 function closeNewsModal() {
   elements.newsModal.style.display = 'none';
+  const scrapeUrlInput = document.getElementById('news-scrape-url');
+  const scrapeStatusSpan = document.getElementById('news-scrape-status');
+  if (scrapeUrlInput) scrapeUrlInput.value = '';
+  if (scrapeStatusSpan) {
+    scrapeStatusSpan.textContent = 'Paste any live news URL above and click Auto-Fill to scrape title, source and text instantly.';
+    scrapeStatusSpan.style.color = 'var(--text-muted)';
+  }
 }
 
 function openFormulateModal(title, summary, source) {
