@@ -336,7 +336,7 @@ let appState = {
   calendarViewMode: 'week',
   activeOptimizerPlatform: 'instagram',
   // News Monitor state
-  currentWorkspace: 'calendar', // 'calendar' or 'news'
+  currentWorkspace: loadStoredData('cb_current_workspace', 'calendar'), // 'calendar' or 'news'
   newsKeywords: loadStoredData('cb_news_keywords', ['eskom', 'corruption', 'load shedding', 'inflation', 'policy', 'delivery']),
   liveNewsFeed: loadStoredData('cb_live_news_feed', []),
   trackedNewsItems: loadStoredData('cb_tracked_news_items', [
@@ -1793,32 +1793,39 @@ function initEvents() {
   // Add Story button
   elements.btnAddStory.addEventListener('click', () => openStoryModal());
 
+  // Function to switch between workspaces (Calendar vs News Monitor)
+  function switchWorkspace(tab) {
+    appState.currentWorkspace = tab;
+    localStorage.setItem('cb_current_workspace', tab);
+
+    if (elements.navBtnCalendar && elements.navBtnNews) {
+      elements.navBtnCalendar.classList.toggle('active', tab === 'calendar');
+      elements.navBtnNews.classList.toggle('active', tab === 'news');
+    }
+
+    if (tab === 'calendar') {
+      document.body.classList.add('body-workspace-calendar');
+      document.body.classList.remove('body-workspace-news');
+      if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'none';
+      if (elements.panelScheduler) elements.panelScheduler.style.display = 'flex';
+      if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'grid';
+    } else {
+      document.body.classList.add('body-workspace-news');
+      document.body.classList.remove('body-workspace-calendar');
+      if (elements.panelScheduler) elements.panelScheduler.style.display = 'none';
+      if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'none';
+      if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'grid';
+      renderKeywords();
+      renderLiveFeed();
+      renderTrackedNews();
+    }
+  }
+
   // ── News Monitor Tab Navigation ────────────────────────
   if (elements.navBtnCalendar && elements.navBtnNews) {
     [elements.navBtnCalendar, elements.navBtnNews].forEach(btn => {
       btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        appState.currentWorkspace = tab;
-        
-        elements.navBtnCalendar.classList.toggle('active', tab === 'calendar');
-        elements.navBtnNews.classList.toggle('active', tab === 'news');
-
-        if (tab === 'calendar') {
-          document.body.classList.add('body-workspace-calendar');
-          document.body.classList.remove('body-workspace-news');
-          elements.newsMonitorGrid.style.display = 'none';
-          elements.panelScheduler.style.display = 'flex';
-          elements.dashboardGrid.style.display = 'grid';
-        } else {
-          document.body.classList.add('body-workspace-news');
-          document.body.classList.remove('body-workspace-calendar');
-          elements.panelScheduler.style.display = 'none';
-          elements.dashboardGrid.style.display = 'none';
-          elements.newsMonitorGrid.style.display = 'grid';
-          renderKeywords();
-          renderLiveFeed();
-          renderTrackedNews();
-        }
+        switchWorkspace(btn.dataset.tab);
       });
     });
   }
@@ -5207,6 +5214,9 @@ function init() {
   renderStoriesHub();
   renderCalendar();
   updateStats();
+  
+  // Set initial workspace (Calendar vs News Monitor) from storage
+  switchWorkspace(appState.currentWorkspace);
   
   // Initialize News Monitor Background Simulation / Auto-Refresh Wire
   initNewsWireLoop();
