@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4.43">
+  <link rel="stylesheet" href="style.css?v=4.44">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -300,11 +300,11 @@
               <p class="panel-subtitle" id="live-feed-subtitle">Live RSS website feed</p>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <select id="feed-source-selector" class="glass-select" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 6px; background: var(--input-bg); border: 1px solid var(--border-glass); color: #fff;">
-                <option value="live-rss" selected>Live RSS Feeds</option>
-                <option value="simulated">Generator Feed</option>
-              </select>
-              <button class="btn btn-outline btn-sm" id="btn-manage-rss" title="Manage RSS Feeds" style="padding: 0.28rem 0.5rem; font-size: 0.7rem; display: none;">Manage RSS</button>
+              <button class="btn btn-primary btn-sm" id="btn-fetch-feed" style="padding: 0.28rem 0.6rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.25rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-refresh"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Fetch Feed
+              </button>
+              <button class="btn btn-outline btn-sm" id="btn-manage-rss" title="Manage RSS Feeds" style="padding: 0.28rem 0.5rem; font-size: 0.7rem;">Manage RSS</button>
               <button class="btn btn-outline btn-sm" id="btn-clear-feed" style="padding: 0.28rem 0.5rem; font-size: 0.7rem;">Clear</button>
             </div>
           </div>
@@ -921,6 +921,6 @@ service cloud.firestore {
     <span class="toast-message">Copied to clipboard!</span>
   </div>
 
-  <script src="app.js?v=4.43"></script>
+  <script src="app.js?v=4.44"></script>
 </body>
 </html>

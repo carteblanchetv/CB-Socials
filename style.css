@@ -3009,3 +3009,15 @@ body.body-workspace-news .bg-blue {
 .badge-cat-delivery { background: var(--color-warning); }
 .badge-cat-consumer { background: var(--color-success); }
 .badge-cat-policy { background: #a855f7; }
+
+/* Spinning animation for fetching RSS feeds */
+.icon-refresh {
+  transition: transform 0.2s ease;
+}
+.spinning {
+  animation: spin-anim 1s linear infinite;
+}
+@keyframes spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

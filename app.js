@@ -719,7 +719,7 @@ const elements = {
   newsTabs: document.querySelectorAll('.panel-news-categories .hub-tab-switcher button'),
   
   // RSS Feed references
-  feedSourceSelector: document.getElementById('feed-source-selector'),
+  btnFetchFeed: document.getElementById('btn-fetch-feed'),
   btnManageRss: document.getElementById('btn-manage-rss'),
   rssManagerModal: document.getElementById('rss-manager-modal'),
   btnRssManagerClose: document.getElementById('btn-rss-manager-close'),
@@ -2288,27 +2288,21 @@ function initEvents() {
   });
 
   // RSS Feed triggers
-  if (elements.feedSourceSelector) {
-    // Set initial value
-    elements.feedSourceSelector.value = appState.newsFeedSource;
-    elements.btnManageRss.style.display = appState.newsFeedSource === 'live-rss' ? 'inline-block' : 'none';
-    if (elements.liveFeedSubtitle) {
-      elements.liveFeedSubtitle.textContent = appState.newsFeedSource === 'live-rss' ? 'Live RSS website feed' : 'Simulated news stream';
-    }
+  if (elements.btnFetchFeed) {
+    elements.btnFetchFeed.addEventListener('click', async () => {
+      const refreshIcon = elements.btnFetchFeed.querySelector('.icon-refresh');
+      if (refreshIcon) refreshIcon.classList.add('spinning');
+      elements.btnFetchFeed.disabled = true;
 
-    elements.feedSourceSelector.addEventListener('change', (e) => {
-      const val = e.target.value;
-      appState.newsFeedSource = val;
-      localStorage.setItem('cb_news_feed_source', val);
-      elements.btnManageRss.style.display = val === 'live-rss' ? 'inline-block' : 'none';
-      if (elements.liveFeedSubtitle) {
-        elements.liveFeedSubtitle.textContent = val === 'live-rss' ? 'Live RSS website feed' : 'Simulated news stream';
-      }
-
-      if (val === 'live-rss') {
-        fetchLiveRSSFeeds();
-      } else {
-        renderLiveFeed();
+      try {
+        await fetchLiveRSSFeeds();
+        showToast('RSS Feeds refreshed successfully!');
+      } catch (err) {
+        console.error('Manual refresh failed:', err);
+        showToast('Failed to refresh some feeds.');
+      } finally {
+        if (refreshIcon) refreshIcon.classList.remove('spinning');
+        elements.btnFetchFeed.disabled = false;
       }
     });
   }
@@ -2719,30 +2713,61 @@ async function fetchLiveRSSFeeds() {
       let xmlText = '';
       let success = false;
 
-      // Try corsproxy.io first (direct XML response)
+      // 1. Try corsproxy.io first (direct XML response)
       try {
+        console.log(`[RSS] Trying corsproxy.io for: ${feedUrl}`);
         const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`);
         if (res.ok) {
-          xmlText = await res.text();
-          success = true;
+          const text = await res.text();
+          if (text && !text.includes('error') && !text.includes('Access Denied')) {
+            xmlText = text;
+            success = true;
+            console.log(`[RSS] Successfully fetched via corsproxy.io: ${feedUrl}`);
+          }
         }
       } catch (e) {
-        console.warn(`corsproxy.io failed for ${feedUrl}, trying allorigins...`, e);
+        console.warn(`[RSS] corsproxy.io failed for ${feedUrl}, trying codetabs...`, e);
       }
 
-      // Fallback to allorigins.win (JSON wrapped response)
+      // 2. Try api.codetabs.com next (direct XML response)
       if (!success) {
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
-        const res = await fetch(proxyUrl);
-        if (res.ok) {
-          const data = await res.json();
-          xmlText = data.contents;
-          success = true;
+        try {
+          console.log(`[RSS] Trying codetabs for: ${feedUrl}`);
+          const res = await fetch(`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(feedUrl)}`);
+          if (res.ok) {
+            const text = await res.text();
+            if (text && !text.includes('Error')) {
+              xmlText = text;
+              success = true;
+              console.log(`[RSS] Successfully fetched via codetabs: ${feedUrl}`);
+            }
+          }
+        } catch (e) {
+          console.warn(`[RSS] codetabs failed for ${feedUrl}, trying allorigins...`, e);
+        }
+      }
+
+      // 3. Fallback to allorigins.win (JSON wrapped response)
+      if (!success) {
+        try {
+          console.log(`[RSS] Trying allorigins.win for: ${feedUrl}`);
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
+          const res = await fetch(proxyUrl);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.contents) {
+              xmlText = data.contents;
+              success = true;
+              console.log(`[RSS] Successfully fetched via allorigins: ${feedUrl}`);
+            }
+          }
+        } catch (e) {
+          console.warn(`[RSS] allorigins failed for ${feedUrl}`, e);
         }
       }
 
       if (!success || !xmlText) {
-        console.warn(`Failed to fetch RSS feed via proxies: ${feedUrl}`);
+        console.warn(`[RSS] All proxies failed to fetch RSS feed: ${feedUrl}`);
         return;
       }
 
@@ -2750,7 +2775,7 @@ async function fetchLiveRSSFeeds() {
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
       
       if (xmlDoc.querySelector("parsererror")) {
-        console.warn(`XML parsing error for feed: ${feedUrl}`);
+        console.warn(`[RSS] XML parsing error for feed: ${feedUrl}`);
         return;
       }
 
