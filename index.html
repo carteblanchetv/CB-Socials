@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4.48">
+  <link rel="stylesheet" href="style.css?v=4.49">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -916,11 +916,206 @@ service cloud.firestore {
     </div>
   </div>
 
+          </div>
+
+          <div>
+            <h5 style="color:var(--text-primary); margin:0 0 0.2rem 0; font-size:0.78rem; font-family:'Outfit', sans-serif;">How Users Log In:</h5>
+            <p style="font-size:0.75rem; margin:0; line-height:1.45;">
+              Once connected to Firebase, users are prompted to log in using their email and password. To register new users, click <strong>Sign Up</strong> on the login screen, enter their credentials, and they can sign in to participate in the same live workspace. You can also manually add users directly in the **Authentication** -> **Users** tab of your Firebase Console.
+            </p>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-actions" style="margin-top:0.5rem;">
+        <button class="btn btn-primary" id="btn-help-close-ok" style="min-width:100px;">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Authentication Overlay -->
+  <div class="auth-overlay" id="auth-overlay" style="display:none;">
+    <div class="auth-card">
+      <div class="brand" style="margin-bottom:1.5rem; justify-content:center;">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <span class="logo-text">CB<span>socials</span></span>
+      </div>
+      <h3 class="auth-title" id="auth-title" style="margin:0 0 0.3rem 0; font-size:1.15rem; font-family:'Outfit', sans-serif;">Log in to Dashboard</h3>
+      <p class="auth-subtitle" id="auth-subtitle" style="margin:0 0 1.2rem 0; font-size:0.78rem; color:var(--text-secondary);">Enter your email and password to sync socials copy</p>
+      
+      <form id="auth-form">
+        <div class="form-group" style="margin-bottom:0.8rem;">
+          <label for="auth-email" style="font-size:0.75rem; margin-bottom:0.3rem;">Email Address</label>
+          <input type="email" id="auth-email" required placeholder="name@carteblanche.co.za" style="font-size:0.8rem; padding:0.45rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:1.2rem;">
+          <label for="auth-password" style="font-size:0.75rem; margin-bottom:0.3rem;">Password</label>
+          <input type="password" id="auth-password" required placeholder="••••••••" style="font-size:0.8rem; padding:0.45rem;">
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-auth-submit" style="width:100%;">Log In</button>
+      </form>
+      
+      <div class="auth-toggle-container" style="margin-top:1rem; text-align:center; font-size:0.75rem;">
+        <span id="auth-toggle-text">Need an account?</span>
+        <button class="btn btn-link" id="btn-auth-toggle" style="background:none; border:none; color:var(--primary); font-weight:600; cursor:pointer; padding:0; margin-left:0.25rem;">Sign Up</button>
+      </div>
+
+      <div class="auth-footer" style="margin-top:1.5rem; text-align:center;">
+        <button id="btn-auth-db-config" style="background:none; border:none; font-size:0.68rem; color:var(--text-muted); cursor:pointer; text-decoration:underline;">Configure Database Connection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Database Settings Modal -->
+  <div class="modal-overlay" id="db-settings-modal" style="display:none;">
+    <div class="modal-glass" style="max-width:460px;">
+      <div class="modal-header">
+        <h3 style="margin:0;">Database Settings</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-db-settings-close" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:1.2rem; line-height:1.5;">
+        Paste your Firebase Web App Configuration JSON (from Project Settings -> SDK setup -> Config) to enable real-time synchronization. Leaving it blank defaults to Local Storage.
+      </p>
+      <form id="db-settings-form">
+        <div class="form-group" style="margin-bottom:1.2rem;">
+          <label for="db-firebase-config" style="font-size:0.75rem; margin-bottom:0.3rem;">Firebase Config (JSON)</label>
+          <textarea id="db-firebase-config" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-project.firebaseapp.com",
+  "projectId": "your-project",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "...",
+  "appId": "..."
+}' style="font-size:0.8rem; padding:0.45rem; width:100%; height:150px; font-family:monospace; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); border-radius:6px; color:var(--text-primary); resize:vertical;"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-db-settings-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Connect</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Push to Calendar Modal -->
+  <div class="modal-overlay" id="push-calendar-modal" style="display:none;">
+    <div class="modal-glass" style="max-width:550px; max-height:85vh; overflow-y:auto;">
+      <div class="modal-header">
+        <h3 id="push-calendar-modal-title">Schedule Copy to Calendar</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-push-calendar-close" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="push-calendar-form">
+        <input type="hidden" id="push-calendar-story-id">
+        <input type="hidden" id="push-calendar-cv-idx">
+        
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Selected Copy Version</label>
+          <div id="push-calendar-copy-preview" style="font-size:0.8rem; padding:0.6rem; background:rgba(0,0,0,0.15); border:1px solid var(--border-glass); border-radius:6px; max-height:100px; overflow-y:auto; color:var(--text-secondary); white-space:pre-wrap;"></div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label>Select Platforms to Schedule</label>
+          <div class="platform-checkboxes" id="push-platforms-selector" style="margin-top:0.4rem;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Platform Schedule Times</label>
+          <div id="push-calendar-platforms-container" style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.4rem;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top:1.5rem;">
+          <button type="button" class="btn btn-outline" id="btn-push-calendar-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-push-calendar-save">Confirm Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add / Edit Tracked News Item Modal -->
+  <div class="modal-overlay" id="news-modal" style="display:none;">
+    <div class="modal-glass" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="news-modal-title">Track News Article</h3>
+        <button class="btn btn-icon btn-news-modal-close" id="btn-news-modal-close" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="news-form">
+        <input type="hidden" id="news-form-id">
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="news-form-title">Article Title</label>
+            <input type="text" id="news-form-title" required placeholder="e.g. Eskom Load Shedding Update">
+          </div>
+          <div class="form-group half-width">
+            <label for="news-form-category">Category</label>
+            <select id="news-form-category" class="glass-select">
+              <option value="breaking">Breaking News</option>
+              <option value="updates">Updates</option>
+              <option value="delivery">Service Delivery Issues</option>
+              <option value="consumer">Consumer Issues</option>
+              <option value="policy">Policy News</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="news-form-source">Source / Link / Publisher</label>
+          <input type="text" id="news-form-source" placeholder="e.g. MyBroadband, Carte Blanche, Twitter">
+        </div>
+        <div class="form-group">
+          <label for="news-form-summary">Key Details / Article Text</label>
+          <textarea id="news-form-summary" required placeholder="Paste the key contents, statements, or article snippets here to formulate copy from..." style="min-height: 120px;"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-news-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-news-save">Save Article</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Manage RSS Feeds Modal -->
+  <div class="modal-overlay" id="rss-manager-modal" style="display:none;">
+    <div class="modal-glass" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Manage RSS Feeds</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-rss-manager-close" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:1rem; line-height:1.4;">
+        Add URLs to live news RSS feeds. (Note: External feeds are fetched using a free client-side proxy. Feeds must be public XML feeds).
+      </p>
+      
+      <form id="rss-feed-form" style="display:flex; gap:0.4rem; margin-bottom:1rem;">
+        <input type="url" id="rss-feed-url" required placeholder="https://news-site.com/rss" class="glass-select" style="flex:1; padding:0.45rem; border-radius:6px; font-size:0.8rem; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
+        <button type="submit" class="btn btn-primary btn-sm" style="padding:0.45rem 0.85rem; border-radius:6px;">Add Feed</button>
+      </form>
+
+      <div class="rss-feeds-list" id="rss-feeds-list" style="display:flex; flex-direction:column; gap:0.4rem; max-height:220px; overflow-y:auto; padding-right:0.2rem; margin-bottom:1rem;">
+        <!-- Populated dynamically -->
+      </div>
+      
+      <div class="modal-actions" style="justify-content: flex-end;">
+        <button class="btn btn-primary btn-sm" id="btn-rss-manager-done">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Notification Toast -->
   <div class="toast-notification" id="toast">
     <span class="toast-message">Copied to clipboard!</span>
   </div>
 
-  <script src="app.js?v=4.48"></script>
+  <script src="app.js?v=4.49"></script>
 </body>
 </html>

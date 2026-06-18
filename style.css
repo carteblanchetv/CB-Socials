@@ -2834,11 +2834,11 @@ textarea {
   box-shadow: 0 4px 15px rgba(0, 130, 195, 0.45);
   font-weight: 700;
 }
-/* News button active (Golden Yellow Theme) */
+/* News button active (Soft Violet Theme) */
 #nav-btn-news.nav-tab.active {
-  background: linear-gradient(135deg, #ca8a04 0%, #eab308 100%);
+  background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.45);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.45);
   font-weight: 700;
 }
 [data-theme="light"] .app-nav-tabs {
@@ -2849,28 +2849,28 @@ textarea {
   background: linear-gradient(135deg, var(--primary) 0%, #009be5 100%);
 }
 [data-theme="light"] #nav-btn-news.nav-tab.active {
-  background: linear-gradient(135deg, #ca8a04 0%, #eab308 100%);
+  background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
 }
 
 /* Distinct Workspace Body Color Accents */
 /* Shift glow backdrops & scrollbars on body active workspace class */
 body.body-workspace-news {
-  --primary: #eab308;
-  --primary-hover: #facc15;
-  --primary-glow: rgba(234, 179, 8, 0.35);
+  --primary: #8b5cf6;
+  --primary-hover: #a78bfa;
+  --primary-glow: rgba(139, 92, 246, 0.35);
 }
 body.body-workspace-news .logo-text span {
-  color: #eab308;
+  color: #8b5cf6;
 }
 body.body-workspace-news .logo-icon {
-  background: linear-gradient(135deg, #ca8a04 0%, #eab308 100%);
-  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.4);
+  background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
 }
 body.body-workspace-news .bg-purple {
-  background: radial-gradient(circle, #ca8a04 0%, transparent 70%);
+  background: radial-gradient(circle, #6d28d9 0%, transparent 70%);
 }
 body.body-workspace-news .bg-blue {
-  background: radial-gradient(circle, #eab308 0%, transparent 70%);
+  background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
 }
 
 /* Keyword Monitor Pills */
