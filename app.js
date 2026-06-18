@@ -2436,9 +2436,15 @@ function renderLiveFeed() {
     else if (item.category === 'consumer') categoryLabel = 'Consumer Issues';
     else if (item.category === 'policy') categoryLabel = 'Policy News';
 
+    const isIol = (item.source && item.source.toLowerCase().includes('iol')) || (item.link && item.link.toLowerCase().includes('iol.co.za'));
+    const isTimesLive = (item.source && item.source.toLowerCase().includes('timeslive')) || (item.link && item.link.toLowerCase().includes('timeslive.co.za'));
+    const factCheckBadge = (isIol || isTimesLive)
+      ? `<span class="fact-check-badge" style="color:var(--color-danger); font-weight:700; font-size:0.6rem; border:1.5px solid var(--color-danger); padding:0.1rem 0.35rem; border-radius:4px; text-transform:uppercase; letter-spacing:0.04em; margin-left:0.5rem; display:inline-flex; align-items:center; background:rgba(239, 68, 68, 0.1);">Fact Check</span>`
+      : '';
+
     card.innerHTML = `
       <div class="live-feed-card-header">
-        <span>Source: <strong>${escapeHtml(item.source)}</strong></span>
+        <span>Source: <strong>${escapeHtml(item.source)}</strong>${factCheckBadge}</span>
         <span>${formatTimeAgo(new Date(item.timestamp))}</span>
       </div>
       <h4 class="live-feed-card-title">${escapeHtml(item.title)}</h4>
