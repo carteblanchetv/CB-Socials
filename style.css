@@ -3021,3 +3021,27 @@ body.body-workspace-news .bg-blue {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Workspace & Theme Specific Accents */
+.body-workspace-news {
+  --primary: #C3DBC5;
+  --primary-hover: #aec3b0;
+  --primary-glow: rgba(195, 219, 197, 0.35);
+}
+.body-workspace-news[data-theme="light"] {
+  --primary: #B99A3C;
+  --primary-hover: #9c8030;
+  --primary-glow: rgba(185, 154, 60, 0.15);
+}
+
+.body-workspace-calendar {
+  --primary: #7798AB;
+  --primary-hover: #5d7e91;
+  --primary-glow: rgba(119, 152, 171, 0.35);
+}
+.body-workspace-calendar[data-theme="light"] {
+  --primary: #5D8298;
+  --primary-hover: #4a6a7c;
+  --primary-glow: rgba(93, 130, 152, 0.15);
+}
+
