@@ -3160,7 +3160,6 @@ async function fetchLiveRSSFeeds() {
   await Promise.all(fetchPromises);
 
   // Merge new items with existing items, ensuring uniqueness by link or title
-  const isGlobal = appState.currentWorkspace === 'global-news';
   const existingItems = isGlobal ? (appState.globalNewsFeed || []) : (appState.liveNewsFeed || []);
   const mergedItems = [...allItems];
   
