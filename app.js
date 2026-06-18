@@ -2208,6 +2208,7 @@ function initEvents() {
         renderKeywords();
         renderLiveFeed(); // Update the live feed immediately to reflect the new keyword filter
         showToast(`Keyword "${val}" added!`);
+        saveSettingsToCloud();
       }
     });
   }
@@ -2328,6 +2329,7 @@ function initEvents() {
         renderRssFeedsList();
         fetchLiveRSSFeeds();
         showToast('RSS Feed added!');
+        saveSettingsToCloud();
       } else if (appState.rssFeeds.includes(url)) {
         showToast('RSS Feed is already in the list!');
       }
@@ -2393,6 +2395,7 @@ function renderKeywords() {
       renderKeywords();
       renderLiveFeed(); // Update the live feed immediately to reflect the removed keyword filter
       showToast(`Keyword "${keywordToRemove}" removed.`);
+      saveSettingsToCloud();
     });
     container.appendChild(pill);
   });
@@ -2646,6 +2649,7 @@ function renderRssFeedsList() {
       renderRssFeedsList();
       fetchLiveRSSFeeds();
       showToast('RSS Feed removed.');
+      saveSettingsToCloud();
     });
 
     container.appendChild(row);
@@ -3567,6 +3571,67 @@ async function deletePostFromDb(postId) {
     console.log('Post deleted from Firebase:', postId);
   } catch (err) {
     console.error('Error deleting post from Firebase:', err);
+  }
+}
+
+// ── Cloud Firestore Settings Sync (Keywords & Feeds) ──────────────────────────────────
+let settingsRealtimeListener = null;
+
+function setupRealtimeSettingsSubscription() {
+  if (!firestoreDb || settingsRealtimeListener) return;
+
+  settingsRealtimeListener = firestoreDb
+    .collection('settings')
+    .doc('news_monitor')
+    .onSnapshot((doc) => {
+      if (doc.exists) {
+        const data = doc.data();
+        let changed = false;
+
+        if (data.keywords && Array.isArray(data.keywords)) {
+          // Check if current list differs before overriding to prevent loops
+          const match = appState.newsKeywords.length === data.keywords.length &&
+                        appState.newsKeywords.every((kw, idx) => kw === data.keywords[idx]);
+          if (!match) {
+            appState.newsKeywords = data.keywords;
+            localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
+            renderKeywords();
+            changed = true;
+          }
+        }
+
+        if (data.feeds && Array.isArray(data.feeds)) {
+          const normalizedFeeds = Array.from(new Set(data.feeds.map(normalizeRssUrl)));
+          const match = appState.rssFeeds.length === normalizedFeeds.length &&
+                        appState.rssFeeds.every((f, idx) => f === normalizedFeeds[idx]);
+          if (!match) {
+            appState.rssFeeds = normalizedFeeds;
+            localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+            renderRssFeedsList();
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          fetchLiveRSSFeeds();
+        }
+      }
+    }, (err) => {
+      console.error('Error fetching settings from Firestore:', err);
+    });
+}
+
+function saveSettingsToCloud() {
+  if (firebaseAuth && firestoreDb && firebaseAuth.currentUser) {
+    firestoreDb.collection('settings').doc('news_monitor').set({
+      keywords: appState.newsKeywords,
+      feeds: appState.rssFeeds,
+      updatedAt: new Date().toISOString()
+    }).then(() => {
+      console.log('Monitor settings (keywords/feeds) successfully saved to Firestore.');
+    }).catch(e => {
+      console.error('Error saving settings to Firestore:', e);
+    });
   }
 }
 
@@ -4571,6 +4636,10 @@ async function initAuth() {
         postsRealtimeListener();
         postsRealtimeListener = null;
       }
+      if (settingsRealtimeListener) {
+        settingsRealtimeListener();
+        settingsRealtimeListener = null;
+      }
     } else {
       // User is logged in, hide auth overlay and set status to connected
       elements.authOverlay.style.display = 'none';
@@ -4584,6 +4653,7 @@ async function initAuth() {
       setupRealtimeSubscription();
       setupRealtimeCalendarNotesSubscription();
       setupRealtimePostsSubscription();
+      setupRealtimeSettingsSubscription();
     }
   });
 }
