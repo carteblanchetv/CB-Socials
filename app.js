@@ -368,6 +368,7 @@ let appState = {
   activeNewsCategoryFilter: 'all',
   newsSearchQuery: '',
   newsFeedSource: loadStoredData('cb_news_feed_source', 'live-rss'), // 'simulated' or 'live-rss'
+  globalNewsFeed: loadStoredData('cb_global_news_feed', []),
   rssFeeds: loadStoredData('cb_rss_feeds', [
     'https://feeds.news24.com/articles/news24/SouthAfrica/rss',
     'https://feeds.news24.com/articles/netwerk24/nuus/rss',
@@ -387,6 +388,25 @@ let appState = {
     'https://www.dispatchlive.co.za/rss/',
     'https://www.citizen.co.za/feed/',
     'https://www.citizen.co.za/network-news/feed/'
+  ]),
+  globalRssFeeds: loadStoredData('cb_global_rss_feeds', [
+    'https://feeds.bbci.co.uk/news/world/rss.xml',
+    'https://rss.cnn.com/rss/edition.rss',
+    'https://feeds.skynews.com/feeds/10115.xml',
+    'https://www.aljazeera.com/xml/rss/all.xml',
+    'https://news.google.com/rss/search?q=source:Reuters&hl=en-US&gl=US&ceid=US:en',
+    'https://www.theguardian.com/world/rss',
+    'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
+    'https://www.france24.com/en/rss',
+    'https://rss.dw.com/rdf/rss-en-all',
+    'https://news.google.com/rss/search?q=source:%22The+Washington+Post%22',
+    'https://news.google.com/rss/search?q=source:%22Associated+Press%22',
+    'https://feeds.npr.org/1001/rss.xml',
+    'https://news.google.com/rss/search?q=source:Bloomberg',
+    'https://www.amnesty.org/en/feed/',
+    'https://www.lemonde.fr/en/rss/une.xml',
+    'https://www.bellingcat.com/feed/',
+    'https://www.wired.com/feed/rss'
   ])
 };
 
@@ -722,6 +742,7 @@ const elements = {
   // News Monitor DOM elements
   navBtnCalendar: document.getElementById('nav-btn-calendar'),
   navBtnNews: document.getElementById('nav-btn-news'),
+  navBtnGlobalNews: document.getElementById('nav-btn-global-news'),
   newsMonitorGrid: document.getElementById('news-monitor-grid'),
   panelScheduler: document.getElementById('panel-scheduler'),
   dashboardGrid: document.querySelector('.dashboard-grid:not(.news-monitor-grid)'),
@@ -1793,37 +1814,58 @@ function initEvents() {
   // Add Story button
   elements.btnAddStory.addEventListener('click', () => openStoryModal());
 
-  // Function to switch between workspaces (Calendar vs News Monitor)
+  // Function to switch between workspaces (Calendar vs Local News vs Global News)
   function switchWorkspace(tab) {
     appState.currentWorkspace = tab;
     localStorage.setItem('cb_current_workspace', tab);
 
-    if (elements.navBtnCalendar && elements.navBtnNews) {
+    if (elements.navBtnCalendar && elements.navBtnNews && elements.navBtnGlobalNews) {
       elements.navBtnCalendar.classList.toggle('active', tab === 'calendar');
       elements.navBtnNews.classList.toggle('active', tab === 'news');
+      elements.navBtnGlobalNews.classList.toggle('active', tab === 'global-news');
     }
+
+    const liveFeedSubtitle = document.getElementById('live-feed-subtitle');
+    const panelKeywordsTitle = document.querySelector('.panel-keywords .panel-title');
+    const panelKeywordsSubtitle = document.querySelector('.panel-keywords .panel-subtitle');
 
     if (tab === 'calendar') {
       document.body.classList.add('body-workspace-calendar');
-      document.body.classList.remove('body-workspace-news');
+      document.body.classList.remove('body-workspace-news', 'body-workspace-global-news');
       if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'none';
       if (elements.panelScheduler) elements.panelScheduler.style.display = 'flex';
       if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'grid';
     } else {
-      document.body.classList.add('body-workspace-news');
-      document.body.classList.remove('body-workspace-calendar');
+      const isGlobal = tab === 'global-news';
+      if (isGlobal) {
+        document.body.classList.add('body-workspace-global-news');
+        document.body.classList.remove('body-workspace-news', 'body-workspace-calendar');
+        if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Global RSS headlines wire';
+        if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Global Keyword Monitor';
+        if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter global news updates';
+      } else {
+        document.body.classList.add('body-workspace-news');
+        document.body.classList.remove('body-workspace-global-news', 'body-workspace-calendar');
+        if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Local RSS headlines wire';
+        if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Local Keyword Monitor';
+        if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter local news updates';
+      }
+
       if (elements.panelScheduler) elements.panelScheduler.style.display = 'none';
       if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'none';
       if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'grid';
+      
       renderKeywords();
+      renderRssFeedsList();
       renderLiveFeed();
       renderTrackedNews();
+      fetchLiveRSSFeeds();
     }
   }
 
   // ── News Monitor Tab Navigation ────────────────────────
-  if (elements.navBtnCalendar && elements.navBtnNews) {
-    [elements.navBtnCalendar, elements.navBtnNews].forEach(btn => {
+  if (elements.navBtnCalendar && elements.navBtnNews && elements.navBtnGlobalNews) {
+    [elements.navBtnCalendar, elements.navBtnNews, elements.navBtnGlobalNews].forEach(btn => {
       btn.addEventListener('click', () => {
         switchWorkspace(btn.dataset.tab);
       });
@@ -2463,15 +2505,22 @@ function initEvents() {
       e.preventDefault();
       const rawUrl = elements.rssFeedUrl.value.trim();
       const url = normalizeRssUrl(rawUrl);
-      if (url && !appState.rssFeeds.includes(url)) {
-        appState.rssFeeds.push(url);
-        localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+      const isGlobal = appState.currentWorkspace === 'global-news';
+      const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
+
+      if (url && !feeds.includes(url)) {
+        feeds.push(url);
+        if (isGlobal) {
+          localStorage.setItem('cb_global_rss_feeds', JSON.stringify(appState.globalRssFeeds));
+        } else {
+          localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+        }
         elements.rssFeedUrl.value = '';
         renderRssFeedsList();
         fetchLiveRSSFeeds();
         showToast('RSS Feed added!');
         saveSettingsToCloud();
-      } else if (appState.rssFeeds.includes(url)) {
+      } else if (feeds.includes(url)) {
         showToast('RSS Feed is already in the list!');
       }
     });
@@ -2547,7 +2596,10 @@ function renderLiveFeed() {
   const container = elements.liveFeedContent;
   container.innerHTML = '';
 
-  const matchedItems = appState.liveNewsFeed.filter(item => {
+  const isGlobal = appState.currentWorkspace === 'global-news';
+  const feedsList = isGlobal ? (appState.globalNewsFeed || []) : (appState.liveNewsFeed || []);
+
+  const matchedItems = feedsList.filter(item => {
     if (appState.newsKeywords.length === 0) return true; // Show all if no keywords are set
     return appState.newsKeywords.some(kw => {
       const kwLower = kw.toLowerCase();
@@ -2775,14 +2827,18 @@ function closeRssManagerModal() {
 
 function renderRssFeedsList() {
   const container = elements.rssFeedsList;
+  if (!container) return;
   container.innerHTML = '';
 
-  if (appState.rssFeeds.length === 0) {
+  const isGlobal = appState.currentWorkspace === 'global-news';
+  const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
+
+  if (feeds.length === 0) {
     container.innerHTML = `<div style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:1rem 0;">No feeds added yet.</div>`;
     return;
   }
 
-  appState.rssFeeds.forEach((feed, idx) => {
+  feeds.forEach((feed, idx) => {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.15); padding:0.4rem 0.6rem; border-radius:6px; border:1px solid var(--border-glass); font-size:0.75rem;';
     
@@ -2802,8 +2858,12 @@ function renderRssFeedsList() {
 
     row.querySelector('.btn-rss-delete').addEventListener('click', (e) => {
       const index = parseInt(e.target.dataset.index, 10);
-      appState.rssFeeds.splice(index, 1);
-      localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+      feeds.splice(index, 1);
+      if (isGlobal) {
+        localStorage.setItem('cb_global_rss_feeds', JSON.stringify(appState.globalRssFeeds));
+      } else {
+        localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+      }
       renderRssFeedsList();
       fetchLiveRSSFeeds();
       showToast('RSS Feed removed.');
@@ -2961,8 +3021,12 @@ function setSucceededProxyIndex(feedUrl, index) {
 async function fetchLiveRSSFeeds() {
   if (appState.newsFeedSource !== 'live-rss') return;
 
-  if (appState.rssFeeds.length === 0) {
-    appState.liveNewsFeed = [];
+  const isGlobal = appState.currentWorkspace === 'global-news';
+  const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
+
+  if (feeds.length === 0) {
+    if (isGlobal) appState.globalNewsFeed = [];
+    else appState.liveNewsFeed = [];
     renderLiveFeed();
     return;
   }
@@ -2977,7 +3041,7 @@ async function fetchLiveRSSFeeds() {
   `;
 
   // Fetch feeds sequentially/concurrently
-  const fetchPromises = appState.rssFeeds.map(async (feedUrl) => {
+  const fetchPromises = feeds.map(async (feedUrl) => {
     try {
       let result = null;
       let success = false;
@@ -3096,7 +3160,8 @@ async function fetchLiveRSSFeeds() {
   await Promise.all(fetchPromises);
 
   // Merge new items with existing items, ensuring uniqueness by link or title
-  const existingItems = appState.liveNewsFeed || [];
+  const isGlobal = appState.currentWorkspace === 'global-news';
+  const existingItems = isGlobal ? (appState.globalNewsFeed || []) : (appState.liveNewsFeed || []);
   const mergedItems = [...allItems];
   
   existingItems.forEach(existing => {
@@ -3112,11 +3177,15 @@ async function fetchLiveRSSFeeds() {
   // Sort by date descending
   mergedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   
-  // Keep up to 150 historic news items
-  appState.liveNewsFeed = mergedItems.slice(0, 150);
-  localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
+  if (isGlobal) {
+    appState.globalNewsFeed = mergedItems.slice(0, 150);
+    localStorage.setItem('cb_global_news_feed', JSON.stringify(appState.globalNewsFeed));
+  } else {
+    appState.liveNewsFeed = mergedItems.slice(0, 150);
+    localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
+  }
   
-  if (appState.currentWorkspace === 'news') {
+  if (appState.currentWorkspace === 'news' || appState.currentWorkspace === 'global-news') {
     renderLiveFeed();
   }
 }
@@ -3965,59 +4034,110 @@ async function deleteCopyFromDb(copyId) {
 
 // ── Cloud Firestore Settings Sync (Keywords & Feeds) ──────────────────────────────────
 let settingsRealtimeListener = null;
+let globalSettingsRealtimeListener = null;
 
 function setupRealtimeSettingsSubscription() {
-  if (!firestoreDb || settingsRealtimeListener) return;
+  if (!firestoreDb) return;
 
-  settingsRealtimeListener = firestoreDb
-    .collection('settings')
-    .doc('news_monitor')
-    .onSnapshot((doc) => {
-      if (doc.exists) {
-        const data = doc.data();
-        let changed = false;
+  if (!settingsRealtimeListener) {
+    settingsRealtimeListener = firestoreDb
+      .collection('settings')
+      .doc('news_monitor')
+      .onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          let changed = false;
 
-        if (data.keywords && Array.isArray(data.keywords)) {
-          // Check if current list differs before overriding to prevent loops
-          const match = appState.newsKeywords.length === data.keywords.length &&
-                        appState.newsKeywords.every((kw, idx) => kw === data.keywords[idx]);
-          if (!match) {
-            appState.newsKeywords = data.keywords;
-            localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
-            renderKeywords();
-            changed = true;
+          if (data.keywords && Array.isArray(data.keywords)) {
+            const match = appState.newsKeywords.length === data.keywords.length &&
+                          appState.newsKeywords.every((kw, idx) => kw === data.keywords[idx]);
+            if (!match) {
+              appState.newsKeywords = data.keywords;
+              localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
+              renderKeywords();
+              changed = true;
+            }
+          }
+
+          if (data.feeds && Array.isArray(data.feeds)) {
+            const normalizedFeeds = Array.from(new Set(data.feeds.map(normalizeRssUrl)));
+            const match = appState.rssFeeds.length === normalizedFeeds.length &&
+                          appState.rssFeeds.every((f, idx) => f === normalizedFeeds[idx]);
+            if (!match) {
+              appState.rssFeeds = normalizedFeeds;
+              localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+              if (appState.currentWorkspace === 'news') {
+                renderRssFeedsList();
+                changed = true;
+              }
+            }
+          }
+
+          if (changed && appState.currentWorkspace === 'news') {
+            fetchLiveRSSFeeds();
           }
         }
+      }, (err) => {
+        console.error('Error fetching Local settings from Firestore:', err);
+      });
+  }
 
-        if (data.feeds && Array.isArray(data.feeds)) {
-          const normalizedFeeds = Array.from(new Set(data.feeds.map(normalizeRssUrl)));
-          const match = appState.rssFeeds.length === normalizedFeeds.length &&
-                        appState.rssFeeds.every((f, idx) => f === normalizedFeeds[idx]);
-          if (!match) {
-            appState.rssFeeds = normalizedFeeds;
-            localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
-            renderRssFeedsList();
-            changed = true;
+  if (!globalSettingsRealtimeListener) {
+    globalSettingsRealtimeListener = firestoreDb
+      .collection('settings')
+      .doc('global_news_monitor')
+      .onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          let changed = false;
+
+          if (data.keywords && Array.isArray(data.keywords)) {
+            const match = appState.newsKeywords.length === data.keywords.length &&
+                          appState.newsKeywords.every((kw, idx) => kw === data.keywords[idx]);
+            if (!match) {
+              appState.newsKeywords = data.keywords;
+              localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
+              renderKeywords();
+              changed = true;
+            }
+          }
+
+          if (data.feeds && Array.isArray(data.feeds)) {
+            const normalizedFeeds = Array.from(new Set(data.feeds.map(normalizeRssUrl)));
+            const match = appState.globalRssFeeds.length === normalizedFeeds.length &&
+                          appState.globalRssFeeds.every((f, idx) => f === normalizedFeeds[idx]);
+            if (!match) {
+              appState.globalRssFeeds = normalizedFeeds;
+              localStorage.setItem('cb_global_rss_feeds', JSON.stringify(appState.globalRssFeeds));
+              if (appState.currentWorkspace === 'global-news') {
+                renderRssFeedsList();
+                changed = true;
+              }
+            }
+          }
+
+          if (changed && appState.currentWorkspace === 'global-news') {
+            fetchLiveRSSFeeds();
           }
         }
-
-        if (changed) {
-          fetchLiveRSSFeeds();
-        }
-      }
-    }, (err) => {
-      console.error('Error fetching settings from Firestore:', err);
-    });
+      }, (err) => {
+        console.error('Error fetching Global settings from Firestore:', err);
+      });
+  }
 }
 
 function saveSettingsToCloud() {
   if (firebaseAuth && firestoreDb && firebaseAuth.currentUser) {
-    firestoreDb.collection('settings').doc('news_monitor').set({
+    const isGlobal = appState.currentWorkspace === 'global-news';
+    const docId = isGlobal ? 'global_news_monitor' : 'news_monitor';
+    const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
+
+    firestoreDb.collection('settings').doc(docId).set({
       keywords: appState.newsKeywords,
-      feeds: appState.rssFeeds,
+      feeds: feeds,
       updatedAt: new Date().toISOString()
     }).then(() => {
-      console.log('Monitor settings (keywords/feeds) successfully saved to Firestore.');
+      console.log(`${isGlobal ? 'Global' : 'Local'} settings successfully saved to Firestore.`);
     }).catch(e => {
       console.error('Error saving settings to Firestore:', e);
     });
@@ -5029,6 +5149,10 @@ async function initAuth() {
         settingsRealtimeListener();
         settingsRealtimeListener = null;
       }
+      if (globalSettingsRealtimeListener) {
+        globalSettingsRealtimeListener();
+        globalSettingsRealtimeListener = null;
+      }
       if (trackedNewsRealtimeListener) {
         trackedNewsRealtimeListener();
         trackedNewsRealtimeListener = null;
@@ -5194,6 +5318,10 @@ function init() {
   if (appState.rssFeeds && Array.isArray(appState.rssFeeds)) {
     appState.rssFeeds = Array.from(new Set(appState.rssFeeds.map(normalizeRssUrl)));
     localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+  }
+  if (appState.globalRssFeeds && Array.isArray(appState.globalRssFeeds)) {
+    appState.globalRssFeeds = Array.from(new Set(appState.globalRssFeeds.map(normalizeRssUrl)));
+    localStorage.setItem('cb_global_rss_feeds', JSON.stringify(appState.globalRssFeeds));
   }
 
   // Highlight the tab matching the current activeDay

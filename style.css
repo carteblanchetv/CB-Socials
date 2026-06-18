@@ -3023,12 +3023,14 @@ body.body-workspace-news .bg-blue {
 }
 
 /* Workspace & Theme Specific Accents */
-.body-workspace-news {
+.body-workspace-news,
+.body-workspace-global-news {
   --primary: #C3DBC5;
   --primary-hover: #aec3b0;
   --primary-glow: rgba(195, 219, 197, 0.35);
 }
-.body-workspace-news[data-theme="light"] {
+.body-workspace-news[data-theme="light"],
+.body-workspace-global-news[data-theme="light"] {
   --primary: #B99A3C;
   --primary-hover: #9c8030;
   --primary-glow: rgba(185, 154, 60, 0.15);
