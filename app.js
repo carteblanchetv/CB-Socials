@@ -2272,6 +2272,7 @@ function initEvents() {
       localStorage.setItem('cb_tracked_news_items', JSON.stringify(appState.trackedNewsItems));
       closeNewsModal();
       renderTrackedNews();
+      saveTrackedNewsToCloud();
     });
   }
 
@@ -2480,6 +2481,7 @@ function renderLiveFeed() {
         localStorage.setItem('cb_tracked_news_items', JSON.stringify(appState.trackedNewsItems));
         renderTrackedNews();
         showToast('Added to Tracked News Items!');
+        saveTrackedNewsToCloud();
       }
     });
 
@@ -2561,6 +2563,7 @@ function renderTrackedNews() {
       localStorage.setItem('cb_tracked_news_items', JSON.stringify(appState.trackedNewsItems));
       renderTrackedNews();
       showToast('Article removed from tracking.');
+      deleteTrackedNewsFromDb(item.id);
     });
 
     container.appendChild(card);
@@ -3571,6 +3574,77 @@ async function deletePostFromDb(postId) {
     console.log('Post deleted from Firebase:', postId);
   } catch (err) {
     console.error('Error deleting post from Firebase:', err);
+  }
+}
+
+// ── Cloud Firestore Tracked Articles Sync ──────────────────────────────────────────────
+let trackedNewsRealtimeListener = null;
+
+function setupRealtimeTrackedNewsSubscription() {
+  if (!firestoreDb || trackedNewsRealtimeListener) return;
+
+  trackedNewsRealtimeListener = firestoreDb
+    .collection('tracked_articles')
+    .onSnapshot((snapshot) => {
+      const updatedItems = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        updatedItems.push({
+          id: doc.id,
+          title: data.title || '',
+          category: data.category || 'updates',
+          source: data.source || '',
+          summary: data.summary || '',
+          timestamp: data.timestamp || new Date().toISOString()
+        });
+      });
+
+      // Sort by date descending
+      updatedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      // Overwrite state and localStorage if there is any update
+      if (updatedItems.length > 0 || appState.trackedNewsItems.length > 0) {
+        const match = appState.trackedNewsItems.length === updatedItems.length &&
+                      appState.trackedNewsItems.every((item, idx) => item.id === updatedItems[idx].id);
+        if (!match) {
+          appState.trackedNewsItems = updatedItems;
+          localStorage.setItem('cb_tracked_news_items', JSON.stringify(appState.trackedNewsItems));
+          renderTrackedNews();
+        }
+      }
+    }, (err) => {
+      console.error('Error fetching tracked articles from Firestore:', err);
+    });
+}
+
+function saveTrackedNewsToCloud() {
+  if (firebaseAuth && firestoreDb && firebaseAuth.currentUser) {
+    const batch = firestoreDb.batch();
+    appState.trackedNewsItems.forEach(item => {
+      const docRef = firestoreDb.collection('tracked_articles').doc(item.id);
+      batch.set(docRef, {
+        id: item.id,
+        title: item.title,
+        category: item.category,
+        source: item.source,
+        summary: item.summary,
+        timestamp: item.timestamp,
+        updatedAt: new Date().toISOString()
+      });
+    });
+    batch.commit()
+      .then(() => console.log('Tracked articles batch saved to Firestore.'))
+      .catch(e => console.error('Error batch saving tracked articles:', e));
+  }
+}
+
+async function deleteTrackedNewsFromDb(itemId) {
+  if (!firestoreDb) return;
+  try {
+    await firestoreDb.collection('tracked_articles').doc(itemId).delete();
+    console.log('Tracked article deleted from Firestore:', itemId);
+  } catch (err) {
+    console.error('Error deleting tracked article from Firestore:', err);
   }
 }
 
@@ -4640,6 +4714,10 @@ async function initAuth() {
         settingsRealtimeListener();
         settingsRealtimeListener = null;
       }
+      if (trackedNewsRealtimeListener) {
+        trackedNewsRealtimeListener();
+        trackedNewsRealtimeListener = null;
+      }
     } else {
       // User is logged in, hide auth overlay and set status to connected
       elements.authOverlay.style.display = 'none';
@@ -4654,6 +4732,7 @@ async function initAuth() {
       setupRealtimeCalendarNotesSubscription();
       setupRealtimePostsSubscription();
       setupRealtimeSettingsSubscription();
+      setupRealtimeTrackedNewsSubscription();
     }
   });
 }
