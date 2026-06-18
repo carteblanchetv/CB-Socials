@@ -2407,6 +2407,7 @@ function renderLiveFeed() {
   container.innerHTML = '';
 
   const matchedItems = appState.liveNewsFeed.filter(item => {
+    if (appState.newsKeywords.length === 0) return true; // Show all if no keywords are set
     return appState.newsKeywords.some(kw => {
       const kwLower = kw.toLowerCase();
       return item.title.toLowerCase().includes(kwLower) || 
@@ -2670,14 +2671,44 @@ async function fetchLiveRSSFeeds() {
   // Fetch feeds sequentially/concurrently
   const fetchPromises = appState.rssFeeds.map(async (feedUrl) => {
     try {
-      // Use free CORS proxy to fetch RSS XML in client-side
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) return;
-      const data = await res.json();
-      
+      let xmlText = '';
+      let success = false;
+
+      // Try corsproxy.io first (direct XML response)
+      try {
+        const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`);
+        if (res.ok) {
+          xmlText = await res.text();
+          success = true;
+        }
+      } catch (e) {
+        console.warn(`corsproxy.io failed for ${feedUrl}, trying allorigins...`, e);
+      }
+
+      // Fallback to allorigins.win (JSON wrapped response)
+      if (!success) {
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (res.ok) {
+          const data = await res.json();
+          xmlText = data.contents;
+          success = true;
+        }
+      }
+
+      if (!success || !xmlText) {
+        console.warn(`Failed to fetch RSS feed via proxies: ${feedUrl}`);
+        return;
+      }
+
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      
+      if (xmlDoc.querySelector("parsererror")) {
+        console.warn(`XML parsing error for feed: ${feedUrl}`);
+        return;
+      }
+
       const items = xmlDoc.querySelectorAll("item");
       const channelTitle = xmlDoc.querySelector("channel > title")?.textContent || "RSS Feed";
 
