@@ -2325,7 +2325,8 @@ function initEvents() {
   if (elements.rssFeedForm) {
     elements.rssFeedForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const url = elements.rssFeedUrl.value.trim();
+      const rawUrl = elements.rssFeedUrl.value.trim();
+      const url = normalizeRssUrl(rawUrl);
       if (url && !appState.rssFeeds.includes(url)) {
         appState.rssFeeds.push(url);
         localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
@@ -2333,6 +2334,8 @@ function initEvents() {
         renderRssFeedsList();
         fetchLiveRSSFeeds();
         showToast('RSS Feed added!');
+      } else if (appState.rssFeeds.includes(url)) {
+        showToast('RSS Feed is already in the list!');
       }
     });
   }
@@ -2647,6 +2650,48 @@ function renderRssFeedsList() {
 
     container.appendChild(row);
   });
+}
+
+function normalizeRssUrl(url) {
+  if (!url) return '';
+  let cleanUrl = url.trim().toLowerCase();
+  
+  // Strip trailing slash for exact matching
+  if (cleanUrl.endsWith('/')) {
+    cleanUrl = cleanUrl.slice(0, -1);
+  }
+  
+  // Strip protocol prefix to make matching simpler and domain-independent
+  cleanUrl = cleanUrl.replace(/^https?:\/\/(www\.)?/, '');
+
+  const mapping = {
+    'news24.com': 'https://feeds.24.com/articles/news24/SouthAfrica/rss',
+    'netwerk24.com': 'https://feeds.24.com/articles/netwerk24/nuus/rss',
+    'ewn.co.za': 'https://ewn.co.za/RSS%20Feeds/Latest%20News',
+    'iol.co.za': 'https://rss.iol.io/iol/news',
+    'dailymaverick.co.za': 'https://www.dailymaverick.co.za/feed/',
+    'maroelamedia.co.za': 'https://maroelamedia.co.za/feed/',
+    'mg.co.za': 'https://mg.co.za/feed/',
+    'businesstech.co.za/news': 'https://businesstech.co.za/news/feed/',
+    'businesstech.co.za': 'https://businesstech.co.za/news/feed/',
+    'mybroadband.co.za/news': 'https://mybroadband.co.za/news/feed/',
+    'mybroadband.co.za': 'https://mybroadband.co.za/news/feed/',
+    'techcentral.co.za': 'https://techcentral.co.za/feed/',
+    'teeveetee.blogspot.com': 'https://teeveetee.blogspot.com/feeds/posts/default?alt=rss',
+    'businessday.co.za': 'https://www.businesslive.co.za/bd/rss',
+    'moneyweb.co.za': 'https://www.moneyweb.co.za/feed/',
+    'enca.com': 'https://www.enca.com/feed/rss/latest-news',
+    'timeslive.co.za': 'https://www.timeslive.co.za/rss/',
+    'dailydispatch.co.za': 'https://www.dispatchlive.co.za/rss/',
+    'citizen.co.za': 'https://www.citizen.co.za/feed/',
+    'citizen.co.za/network-news': 'https://www.citizen.co.za/network-news/feed/'
+  };
+
+  if (mapping[cleanUrl]) {
+    return mapping[cleanUrl];
+  }
+
+  return url;
 }
 
 // Client-side RSS fetching via public cross-origin API proxies
@@ -4630,6 +4675,12 @@ function setupRealtimeSubscription() {
 
 // 9. Startup Initialization
 function init() {
+  // Clean, normalize and remove duplicates from stored RSS feeds
+  if (appState.rssFeeds && Array.isArray(appState.rssFeeds)) {
+    appState.rssFeeds = Array.from(new Set(appState.rssFeeds.map(normalizeRssUrl)));
+    localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+  }
+
   // Highlight the tab matching the current activeDay
   if (elements.dayTabsList) {
     const currentTab = elements.dayTabsList.querySelector(`.day-tab[data-day="${appState.activeDay}"]`);
