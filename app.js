@@ -559,8 +559,34 @@ async function saveStories(storyIds = null, localOnly = false) {
 }
 
 
-function saveCopyLibrary() {
+function saveCopyLibrary(itemIds = null) {
   localStorage.setItem('cbsocials_copy_library', JSON.stringify(appState.copyLibrary));
+  
+  if (firebaseAuth && firestoreDb && firebaseAuth.currentUser) {
+    let toSave = appState.copyLibrary;
+    if (itemIds !== null) {
+      const idsSet = new Set(Array.isArray(itemIds) ? itemIds : [itemIds]);
+      toSave = appState.copyLibrary.filter(c => idsSet.has(c.id));
+    }
+    
+    if (toSave.length > 0) {
+      const batch = firestoreDb.batch();
+      toSave.forEach(c => {
+        const docRef = firestoreDb.collection('copy_library').doc(c.id);
+        batch.set(docRef, {
+          id: c.id,
+          title: c.title || '',
+          category: c.category || 'General',
+          platforms: c.platforms || [],
+          text: c.text || '',
+          updatedAt: c.updatedAt || new Date().toISOString()
+        });
+      });
+      batch.commit()
+        .then(() => console.log('Copy Library templates saved to Firestore.'))
+        .catch(err => console.error('Error saving copy library batch:', err));
+    }
+  }
 }
 
 // 2. DOM Elements
@@ -3067,6 +3093,7 @@ function renderCopyLibrary() {
         saveCopyLibrary();
         renderCopyLibrary();
         showToast('Copy deleted.');
+        deleteCopyFromDb(btn.dataset.id);
       }
     });
   });
@@ -3645,6 +3672,54 @@ async function deleteTrackedNewsFromDb(itemId) {
     console.log('Tracked article deleted from Firestore:', itemId);
   } catch (err) {
     console.error('Error deleting tracked article from Firestore:', err);
+  }
+}
+
+// ── Cloud Firestore Copy Library Sync ───────────────────────────────────────────────
+let copyLibraryRealtimeListener = null;
+
+function setupRealtimeCopyLibrarySubscription() {
+  if (!firestoreDb || copyLibraryRealtimeListener) return;
+
+  copyLibraryRealtimeListener = firestoreDb
+    .collection('copy_library')
+    .onSnapshot((snapshot) => {
+      const updatedLibrary = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        updatedLibrary.push({
+          id: doc.id,
+          title: data.title || '',
+          category: data.category || 'General',
+          platforms: data.platforms || [],
+          text: data.text || '',
+          updatedAt: data.updatedAt || new Date().toISOString()
+        });
+      });
+
+      updatedLibrary.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      if (updatedLibrary.length > 0 || appState.copyLibrary.length > 0) {
+        const match = appState.copyLibrary.length === updatedLibrary.length &&
+                      appState.copyLibrary.every((c, idx) => c.id === updatedLibrary[idx].id);
+        if (!match) {
+          appState.copyLibrary = updatedLibrary;
+          localStorage.setItem('cbsocials_copy_library', JSON.stringify(appState.copyLibrary));
+          renderCopyLibrary();
+        }
+      }
+    }, (err) => {
+      console.error('Error subscribing to Copy Library in Firestore:', err);
+    });
+}
+
+async function deleteCopyFromDb(copyId) {
+  if (!firestoreDb) return;
+  try {
+    await firestoreDb.collection('copy_library').doc(copyId).delete();
+    console.log('Copy Library template deleted from Firebase:', copyId);
+  } catch (err) {
+    console.error('Error deleting copy template from Firebase:', err);
   }
 }
 
@@ -4718,6 +4793,10 @@ async function initAuth() {
         trackedNewsRealtimeListener();
         trackedNewsRealtimeListener = null;
       }
+      if (copyLibraryRealtimeListener) {
+        copyLibraryRealtimeListener();
+        copyLibraryRealtimeListener = null;
+      }
     } else {
       // User is logged in, hide auth overlay and set status to connected
       elements.authOverlay.style.display = 'none';
@@ -4733,6 +4812,7 @@ async function initAuth() {
       setupRealtimePostsSubscription();
       setupRealtimeSettingsSubscription();
       setupRealtimeTrackedNewsSubscription();
+      setupRealtimeCopyLibrarySubscription();
     }
   });
 }
