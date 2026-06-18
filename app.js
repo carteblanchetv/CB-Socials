@@ -369,8 +369,8 @@ let appState = {
   newsSearchQuery: '',
   newsFeedSource: loadStoredData('cb_news_feed_source', 'live-rss'), // 'simulated' or 'live-rss'
   rssFeeds: loadStoredData('cb_rss_feeds', [
-    'https://feeds.24.com/articles/news24/SouthAfrica/rss',
-    'https://feeds.24.com/articles/netwerk24/nuus/rss',
+    'https://feeds.news24.com/articles/news24/SouthAfrica/rss',
+    'https://feeds.news24.com/articles/netwerk24/nuus/rss',
     'https://ewn.co.za/RSS%20Feeds/Latest%20News',
     'https://rss.iol.io/iol/news',
     'https://www.dailymaverick.co.za/feed/',
@@ -2689,6 +2689,12 @@ function normalizeRssUrl(url) {
   if (!url) return '';
   let cleanUrl = url.trim().toLowerCase();
   
+  // Migrate old down domain to the new working subdomain
+  if (cleanUrl.includes('feeds.24.com')) {
+    url = url.replace('feeds.24.com', 'feeds.news24.com');
+    cleanUrl = cleanUrl.replace('feeds.24.com', 'feeds.news24.com');
+  }
+
   // Strip trailing slash for exact matching
   if (cleanUrl.endsWith('/')) {
     cleanUrl = cleanUrl.slice(0, -1);
@@ -2698,8 +2704,8 @@ function normalizeRssUrl(url) {
   cleanUrl = cleanUrl.replace(/^https?:\/\/(www\.)?/, '');
 
   const mapping = {
-    'news24.com': 'https://feeds.24.com/articles/news24/SouthAfrica/rss',
-    'netwerk24.com': 'https://feeds.24.com/articles/netwerk24/nuus/rss',
+    'news24.com': 'https://feeds.news24.com/articles/news24/SouthAfrica/rss',
+    'netwerk24.com': 'https://feeds.news24.com/articles/netwerk24/nuus/rss',
     'ewn.co.za': 'https://ewn.co.za/RSS%20Feeds/Latest%20News',
     'iol.co.za': 'https://rss.iol.io/iol/news',
     'dailymaverick.co.za': 'https://www.dailymaverick.co.za/feed/',
