@@ -3035,14 +3035,14 @@ body.body-workspace-news .bg-blue {
 }
 
 .body-workspace-global-news {
-  --primary: #8b5cf6;
-  --primary-hover: #7c3aed;
-  --primary-glow: rgba(139, 92, 246, 0.35);
+  --primary: #DAA49A;
+  --primary-hover: #c99288;
+  --primary-glow: rgba(218, 164, 154, 0.35);
 }
 .body-workspace-global-news[data-theme="light"] {
-  --primary: #6d28d9;
-  --primary-hover: #5b21b6;
-  --primary-glow: rgba(109, 40, 217, 0.15);
+  --primary: #C26B5B;
+  --primary-hover: #a9584a;
+  --primary-glow: rgba(194, 107, 91, 0.15);
 }
 
 .body-workspace-calendar {
