@@ -2753,6 +2753,71 @@ async function fetchWithTimeout(resource, options = {}) {
   }
 }
 
+// Proxy Providers Definition
+const PROXY_PROVIDERS = [
+  {
+    name: 'corsproxy.io',
+    fetch: async (url) => {
+      const res = await fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(url)}`, { timeout: 3000 });
+      if (!res.ok) throw new Error('Status not OK');
+      const text = await res.text();
+      if (!text || text.includes('error') || text.includes('Access Denied')) throw new Error('Invalid response content');
+      return text;
+    }
+  },
+  {
+    name: 'thingproxy',
+    fetch: async (url) => {
+      const res = await fetchWithTimeout(`https://thingproxy.freeboard.io/fetch/${url}`, { timeout: 3000 });
+      if (!res.ok) throw new Error('Status not OK');
+      const text = await res.text();
+      if (!text || text.includes('error')) throw new Error('Invalid response content');
+      return text;
+    }
+  },
+  {
+    name: 'codetabs',
+    fetch: async (url) => {
+      const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`, { timeout: 3000 });
+      if (!res.ok) throw new Error('Status not OK');
+      const text = await res.text();
+      if (!text || text.includes('Error')) throw new Error('Invalid response content');
+      return text;
+    }
+  },
+  {
+    name: 'allorigins',
+    fetch: async (url) => {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const res = await fetchWithTimeout(proxyUrl, { timeout: 4000 });
+      if (!res.ok) throw new Error('Status not OK');
+      const data = await res.json();
+      if (!data || !data.contents) throw new Error('Invalid JSON wrapper');
+      return data.contents;
+    }
+  }
+];
+
+// Session storage cache for proxy success history to speed up successive fetches
+function getSucceededProxyIndex(feedUrl) {
+  try {
+    const cache = JSON.parse(sessionStorage.getItem('cb_feed_proxy_cache') || '{}');
+    return typeof cache[feedUrl] === 'number' ? cache[feedUrl] : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setSucceededProxyIndex(feedUrl, index) {
+  try {
+    const cache = JSON.parse(sessionStorage.getItem('cb_feed_proxy_cache') || '{}');
+    cache[feedUrl] = index;
+    sessionStorage.setItem('cb_feed_proxy_cache', JSON.stringify(cache));
+  } catch (e) {
+    // ignore
+  }
+}
+
 // Client-side RSS fetching via public cross-origin API proxies
 async function fetchLiveRSSFeeds() {
   if (appState.newsFeedSource !== 'live-rss') return;
@@ -2777,75 +2842,40 @@ async function fetchLiveRSSFeeds() {
     try {
       let xmlText = '';
       let success = false;
+      let usedProxyIdx = -1;
 
-      // 1. Try corsproxy.io first (direct XML response)
-      try {
-        console.log(`[RSS] Trying corsproxy.io for: ${feedUrl}`);
-        const res = await fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`, { timeout: 4000 });
-        if (res.ok) {
-          const text = await res.text();
-          if (text && !text.includes('error') && !text.includes('Access Denied')) {
-            xmlText = text;
+      // Try cached successful proxy provider first
+      const cachedIdx = getSucceededProxyIndex(feedUrl);
+      if (cachedIdx !== null && cachedIdx >= 0 && cachedIdx < PROXY_PROVIDERS.length) {
+        const provider = PROXY_PROVIDERS[cachedIdx];
+        try {
+          console.log(`[RSS] Trying cached proxy (${provider.name}) for: ${feedUrl}`);
+          xmlText = await provider.fetch(feedUrl);
+          success = true;
+          usedProxyIdx = cachedIdx;
+          console.log(`[RSS] Cache hit! Successfully fetched via cached proxy (${provider.name}): ${feedUrl}`);
+        } catch (e) {
+          console.warn(`[RSS] Cached proxy (${provider.name}) failed, clearing cache entry and trying fallbacks...`, e);
+          setSucceededProxyIndex(feedUrl, null);
+        }
+      }
+
+      // Fallback sequentially through proxy providers
+      if (!success) {
+        for (let i = 0; i < PROXY_PROVIDERS.length; i++) {
+          if (i === cachedIdx) continue; // Skip since we already tried it
+          const provider = PROXY_PROVIDERS[i];
+          try {
+            console.log(`[RSS] Trying proxy (${provider.name}) for: ${feedUrl}`);
+            xmlText = await provider.fetch(feedUrl);
             success = true;
-            console.log(`[RSS] Successfully fetched via corsproxy.io: ${feedUrl}`);
+            usedProxyIdx = i;
+            setSucceededProxyIndex(feedUrl, i);
+            console.log(`[RSS] Successfully fetched via ${provider.name}: ${feedUrl}`);
+            break;
+          } catch (e) {
+            console.warn(`[RSS] Proxy ${provider.name} failed for ${feedUrl}: ${e.message}`);
           }
-        }
-      } catch (e) {
-        console.warn(`[RSS] corsproxy.io failed for ${feedUrl}, trying thingproxy...`, e);
-      }
-
-      // 2. Try thingproxy next (direct XML response)
-      if (!success) {
-        try {
-          console.log(`[RSS] Trying thingproxy for: ${feedUrl}`);
-          const res = await fetchWithTimeout(`https://thingproxy.freeboard.io/fetch/${feedUrl}`, { timeout: 4000 });
-          if (res.ok) {
-            const text = await res.text();
-            if (text && !text.includes('error')) {
-              xmlText = text;
-              success = true;
-              console.log(`[RSS] Successfully fetched via thingproxy: ${feedUrl}`);
-            }
-          }
-        } catch (e) {
-          console.warn(`[RSS] thingproxy failed for ${feedUrl}, trying codetabs...`, e);
-        }
-      }
-
-      // 3. Try api.codetabs.com next (direct XML response)
-      if (!success) {
-        try {
-          console.log(`[RSS] Trying codetabs for: ${feedUrl}`);
-          const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(feedUrl)}`, { timeout: 4000 });
-          if (res.ok) {
-            const text = await res.text();
-            if (text && !text.includes('Error')) {
-              xmlText = text;
-              success = true;
-              console.log(`[RSS] Successfully fetched via codetabs: ${feedUrl}`);
-            }
-          }
-        } catch (e) {
-          console.warn(`[RSS] codetabs failed for ${feedUrl}, trying allorigins...`, e);
-        }
-      }
-
-      // 4. Fallback to allorigins.win (JSON wrapped response)
-      if (!success) {
-        try {
-          console.log(`[RSS] Trying allorigins.win for: ${feedUrl}`);
-          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
-          const res = await fetchWithTimeout(proxyUrl, { timeout: 5000 });
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.contents) {
-              xmlText = data.contents;
-              success = true;
-              console.log(`[RSS] Successfully fetched via allorigins: ${feedUrl}`);
-            }
-          }
-        } catch (e) {
-          console.warn(`[RSS] allorigins failed for ${feedUrl}`, e);
         }
       }
 
