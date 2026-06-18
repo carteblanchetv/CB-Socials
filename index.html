@@ -842,36 +842,6 @@
       </form>
     </div>
   </div>
-
-  <!-- Manage RSS Feeds Modal -->
-  <div class="modal-overlay" id="rss-manager-modal" style="display:none;">
-    <div class="modal-glass" style="max-width: 480px;">
-      <div class="modal-header">
-        <h3>Manage RSS Feeds</h3>
-        <button class="btn btn-icon btn-modal-close" id="btn-rss-manager-close" aria-label="Close modal">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:1rem; line-height:1.4;">
-        Add URLs to live news RSS feeds. (Note: External feeds are fetched using a free client-side proxy. Feeds must be public XML feeds).
-      </p>
-      
-      <form id="rss-feed-form" style="display:flex; gap:0.4rem; margin-bottom:1rem;">
-        <input type="url" id="rss-feed-url" required placeholder="https://news-site.com/rss" class="glass-select" style="flex:1; padding:0.45rem; border-radius:6px; font-size:0.8rem; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
-        <button type="submit" class="btn btn-primary btn-sm" style="padding:0.45rem 0.85rem; border-radius:6px;">Add Feed</button>
-      </form>
-
-      <div class="rss-feeds-list" id="rss-feeds-list" style="display:flex; flex-direction:column; gap:0.4rem; max-height:220px; overflow-y:auto; padding-right:0.2rem; margin-bottom:1rem;">
-        <!-- Populated dynamically -->
-      </div>
-      
-      <div class="modal-actions" style="justify-content: flex-end;">
-        <button class="btn btn-primary btn-sm" id="btn-rss-manager-done">Done</button>
-      </div>
-    </div>
-  </div>
-
-
   <!-- User Authentication Overlay -->
   <div class="auth-overlay" id="auth-overlay" style="display:none;">
     <div class="auth-card">

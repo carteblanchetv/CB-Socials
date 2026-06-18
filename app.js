@@ -2733,6 +2733,26 @@ function normalizeRssUrl(url) {
   return url;
 }
 
+// Helper for fetching with a timeout
+async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 5000 } = options;
+  
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
 // Client-side RSS fetching via public cross-origin API proxies
 async function fetchLiveRSSFeeds() {
   if (appState.newsFeedSource !== 'live-rss') return;
@@ -2761,7 +2781,7 @@ async function fetchLiveRSSFeeds() {
       // 1. Try corsproxy.io first (direct XML response)
       try {
         console.log(`[RSS] Trying corsproxy.io for: ${feedUrl}`);
-        const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`);
+        const res = await fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`, { timeout: 4000 });
         if (res.ok) {
           const text = await res.text();
           if (text && !text.includes('error') && !text.includes('Access Denied')) {
@@ -2771,14 +2791,32 @@ async function fetchLiveRSSFeeds() {
           }
         }
       } catch (e) {
-        console.warn(`[RSS] corsproxy.io failed for ${feedUrl}, trying codetabs...`, e);
+        console.warn(`[RSS] corsproxy.io failed for ${feedUrl}, trying thingproxy...`, e);
       }
 
-      // 2. Try api.codetabs.com next (direct XML response)
+      // 2. Try thingproxy next (direct XML response)
+      if (!success) {
+        try {
+          console.log(`[RSS] Trying thingproxy for: ${feedUrl}`);
+          const res = await fetchWithTimeout(`https://thingproxy.freeboard.io/fetch/${feedUrl}`, { timeout: 4000 });
+          if (res.ok) {
+            const text = await res.text();
+            if (text && !text.includes('error')) {
+              xmlText = text;
+              success = true;
+              console.log(`[RSS] Successfully fetched via thingproxy: ${feedUrl}`);
+            }
+          }
+        } catch (e) {
+          console.warn(`[RSS] thingproxy failed for ${feedUrl}, trying codetabs...`, e);
+        }
+      }
+
+      // 3. Try api.codetabs.com next (direct XML response)
       if (!success) {
         try {
           console.log(`[RSS] Trying codetabs for: ${feedUrl}`);
-          const res = await fetch(`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(feedUrl)}`);
+          const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(feedUrl)}`, { timeout: 4000 });
           if (res.ok) {
             const text = await res.text();
             if (text && !text.includes('Error')) {
@@ -2792,12 +2830,12 @@ async function fetchLiveRSSFeeds() {
         }
       }
 
-      // 3. Fallback to allorigins.win (JSON wrapped response)
+      // 4. Fallback to allorigins.win (JSON wrapped response)
       if (!success) {
         try {
           console.log(`[RSS] Trying allorigins.win for: ${feedUrl}`);
           const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
-          const res = await fetch(proxyUrl);
+          const res = await fetchWithTimeout(proxyUrl, { timeout: 5000 });
           if (res.ok) {
             const data = await res.json();
             if (data && data.contents) {
@@ -2828,8 +2866,8 @@ async function fetchLiveRSSFeeds() {
       const channelTitle = xmlDoc.querySelector("channel > title")?.textContent || "RSS Feed";
 
       items.forEach((item, idx) => {
-        // limit to 10 articles per feed
-        if (idx >= 10) return;
+        // limit to 30 articles per feed
+        if (idx >= 30) return;
 
         const title = item.querySelector("title")?.textContent || "No Title";
         const link = item.querySelector("link")?.textContent || feedUrl;
