@@ -2878,13 +2878,23 @@ async function fetchWithTimeout(resource, options = {}) {
 // Proxy Providers Definition
 const PROXY_PROVIDERS = [
   {
+    name: 'rss2json',
+    fetch: async (url) => {
+      const res = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`, { timeout: 3000 });
+      if (!res.ok) throw new Error('Status not OK');
+      const data = await res.json();
+      if (!data || data.status !== 'ok' || !Array.isArray(data.items)) throw new Error('Invalid rss2json response');
+      return { format: 'json', content: data };
+    }
+  },
+  {
     name: 'corsproxy.io',
     fetch: async (url) => {
       const res = await fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(url)}`, { timeout: 3000 });
       if (!res.ok) throw new Error('Status not OK');
       const text = await res.text();
       if (!text || text.includes('error') || text.includes('Access Denied')) throw new Error('Invalid response content');
-      return text;
+      return { format: 'xml', content: text };
     }
   },
   {
@@ -2894,7 +2904,7 @@ const PROXY_PROVIDERS = [
       if (!res.ok) throw new Error('Status not OK');
       const text = await res.text();
       if (!text || text.includes('error')) throw new Error('Invalid response content');
-      return text;
+      return { format: 'xml', content: text };
     }
   },
   {
@@ -2904,7 +2914,7 @@ const PROXY_PROVIDERS = [
       if (!res.ok) throw new Error('Status not OK');
       const text = await res.text();
       if (!text || text.includes('Error')) throw new Error('Invalid response content');
-      return text;
+      return { format: 'xml', content: text };
     }
   },
   {
@@ -2915,7 +2925,7 @@ const PROXY_PROVIDERS = [
       if (!res.ok) throw new Error('Status not OK');
       const data = await res.json();
       if (!data || !data.contents) throw new Error('Invalid JSON wrapper');
-      return data.contents;
+      return { format: 'xml', content: data.contents };
     }
   }
 ];
@@ -2962,7 +2972,7 @@ async function fetchLiveRSSFeeds() {
   // Fetch feeds sequentially/concurrently
   const fetchPromises = appState.rssFeeds.map(async (feedUrl) => {
     try {
-      let xmlText = '';
+      let result = null;
       let success = false;
       let usedProxyIdx = -1;
 
@@ -2972,7 +2982,7 @@ async function fetchLiveRSSFeeds() {
         const provider = PROXY_PROVIDERS[cachedIdx];
         try {
           console.log(`[RSS] Trying cached proxy (${provider.name}) for: ${feedUrl}`);
-          xmlText = await provider.fetch(feedUrl);
+          result = await provider.fetch(feedUrl);
           success = true;
           usedProxyIdx = cachedIdx;
           console.log(`[RSS] Cache hit! Successfully fetched via cached proxy (${provider.name}): ${feedUrl}`);
@@ -2989,7 +2999,7 @@ async function fetchLiveRSSFeeds() {
           const provider = PROXY_PROVIDERS[i];
           try {
             console.log(`[RSS] Trying proxy (${provider.name}) for: ${feedUrl}`);
-            xmlText = await provider.fetch(feedUrl);
+            result = await provider.fetch(feedUrl);
             success = true;
             usedProxyIdx = i;
             setSucceededProxyIndex(feedUrl, i);
@@ -3001,38 +3011,56 @@ async function fetchLiveRSSFeeds() {
         }
       }
 
-      if (!success || !xmlText) {
+      if (!success || !result) {
         console.warn(`[RSS] All proxies failed to fetch RSS feed: ${feedUrl}`);
         return;
       }
 
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-      
-      if (xmlDoc.querySelector("parsererror")) {
-        console.warn(`[RSS] XML parsing error for feed: ${feedUrl}`);
-        return;
+      let parsedItems = [];
+      let channelTitle = 'RSS Feed';
+
+      if (result.format === 'json') {
+        const data = result.content;
+        channelTitle = data.feed.title || "RSS Feed";
+        if (Array.isArray(data.items)) {
+          data.items.forEach((item) => {
+            const title = item.title || "No Title";
+            const link = item.link || feedUrl;
+            const summary = (item.description || item.content || "").replace(/<\/?[^>]+(>|$)/g, "").substring(0, 160);
+            const timestamp = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+            parsedItems.push({ title, link, summary, timestamp });
+          });
+        }
+      } else {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(result.content, "text/xml");
+        
+        if (xmlDoc.querySelector("parsererror")) {
+          console.warn(`[RSS] XML parsing error for feed: ${feedUrl}`);
+          return;
+        }
+
+        const items = xmlDoc.querySelectorAll("item");
+        channelTitle = xmlDoc.querySelector("channel > title")?.textContent || "RSS Feed";
+
+        items.forEach((item) => {
+          const title = item.querySelector("title")?.textContent || "No Title";
+          const link = item.querySelector("link")?.textContent || feedUrl;
+          const descriptionRaw = item.querySelector("description")?.textContent || "";
+          const summary = descriptionRaw.replace(/<\/?[^>]+(>|$)/g, "").substring(0, 160);
+          const pubDateStr = item.querySelector("pubDate")?.textContent;
+          const timestamp = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
+          parsedItems.push({ title, link, summary, timestamp });
+        });
       }
 
-      const items = xmlDoc.querySelectorAll("item");
-      const channelTitle = xmlDoc.querySelector("channel > title")?.textContent || "RSS Feed";
-
-      items.forEach((item, idx) => {
+      parsedItems.forEach((pItem, idx) => {
         // limit to 30 articles per feed
         if (idx >= 30) return;
 
-        const title = item.querySelector("title")?.textContent || "No Title";
-        const link = item.querySelector("link")?.textContent || feedUrl;
-        const descriptionRaw = item.querySelector("description")?.textContent || "";
-        
-        // Strip html tags from description
-        const summary = descriptionRaw.replace(/<\/?[^>]+(>|$)/g, "").substring(0, 160);
-        const pubDateStr = item.querySelector("pubDate")?.textContent;
-        const timestamp = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
-
         // Infer Category based on Title keywords
         let category = 'updates';
-        const titleL = title.toLowerCase();
+        const titleL = pItem.title.toLowerCase();
         if (titleL.includes('break') || titleL.includes('kill') || titleL.includes('warn') || titleL.includes('arrest')) {
           category = 'breaking';
         } else if (titleL.includes('power') || titleL.includes('water') || titleL.includes('eskom') || titleL.includes('municip') || titleL.includes('load')) {
@@ -3045,12 +3073,12 @@ async function fetchLiveRSSFeeds() {
 
         allItems.push({
           id: `rss-${channelTitle}-${idx}-${Date.now()}`,
-          title,
-          summary,
+          title: pItem.title,
+          summary: pItem.summary,
           category,
           source: channelTitle,
-          link,
-          timestamp
+          link: pItem.link,
+          timestamp: pItem.timestamp
         });
       });
     } catch (err) {
@@ -3139,7 +3167,7 @@ const SIMULATION_TEMPLATES = [
   }
 ];
 
-function initNewsSimulation() {
+function initNewsWireLoop() {
   if (newsSimulationInterval) clearInterval(newsSimulationInterval);
 
   // Generate 2 seed articles instantly on start if feed is empty and source is simulated
@@ -3155,27 +3183,36 @@ function initNewsSimulation() {
     localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
   }
 
-  newsSimulationInterval = setInterval(() => {
-    if (appState.newsFeedSource !== 'simulated') return;
+  if (appState.newsFeedSource === 'simulated') {
+    newsSimulationInterval = setInterval(() => {
+      if (appState.newsFeedSource !== 'simulated') return;
 
-    const template = SIMULATION_TEMPLATES[Math.floor(Math.random() * SIMULATION_TEMPLATES.length)];
-    appState.liveNewsFeed.unshift({
-      id: `sim-${Date.now()}`,
-      ...template,
-      timestamp: new Date().toISOString()
-    });
+      const template = SIMULATION_TEMPLATES[Math.floor(Math.random() * SIMULATION_TEMPLATES.length)];
+      appState.liveNewsFeed.unshift({
+        id: `sim-${Date.now()}`,
+        ...template,
+        timestamp: new Date().toISOString()
+      });
 
-    // Cap at 25 simulated items
-    if (appState.liveNewsFeed.length > 25) {
-      appState.liveNewsFeed.pop();
-    }
+      // Cap at 25 simulated items
+      if (appState.liveNewsFeed.length > 25) {
+        appState.liveNewsFeed.pop();
+      }
 
-    localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
-    
-    if (appState.currentWorkspace === 'news') {
-      renderLiveFeed();
-    }
-  }, 30000); // Trigger simulated article every 30 seconds
+      localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
+      
+      if (appState.currentWorkspace === 'news') {
+        renderLiveFeed();
+      }
+    }, 30000); // Trigger simulated article every 30 seconds
+  } else if (appState.newsFeedSource === 'live-rss') {
+    // Automatic Live News Wire background refresh every 60 seconds
+    newsSimulationInterval = setInterval(() => {
+      if (appState.newsFeedSource !== 'live-rss') return;
+      console.log('[News Wire] Performing automatic background refresh of RSS feeds...');
+      fetchLiveRSSFeeds();
+    }, 60000);
+  }
 }
 
 function closeCopyItemModal() {
@@ -5171,8 +5208,8 @@ function init() {
   renderCalendar();
   updateStats();
   
-  // Initialize News Monitor Background Simulation
-  initNewsSimulation();
+  // Initialize News Monitor Background Simulation / Auto-Refresh Wire
+  initNewsWireLoop();
   if (appState.newsFeedSource === 'live-rss') {
     fetchLiveRSSFeeds();
   }
