@@ -49,6 +49,16 @@
         </div>
         <span class="logo-text">CB<span>socials</span></span>
       </div>
+      <nav class="app-nav-tabs">
+        <button id="nav-btn-calendar" class="nav-tab active" data-tab="calendar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Calendar Workspace
+        </button>
+        <button id="nav-btn-news" class="nav-tab" data-tab="news">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M16 8h2v8h-2zM6 8h6v3H6zm0 5h6v3H6z"/></svg>
+          News Monitor
+        </button>
+      </nav>
       <div class="header-actions">
         <button id="btn-db-status" class="btn btn-outline btn-db-status" title="Database Connection Status" style="margin-right: 0.25rem; font-size: 0.75rem; padding: 0.4rem 0.65rem;">
           <span class="db-status-dot" id="db-status-dot"></span>
@@ -259,6 +269,76 @@
         </div>
       </section>
 
+    </main>
+
+    <!-- News Monitor Workspace Grid (Toggled off by default) -->
+    <main class="dashboard-grid news-monitor-grid" id="news-monitor-grid" style="display: none;">
+      <!-- Left Column: Live Breaking News Simulator & Keywords -->
+      <div class="dashboard-left-col" style="display: flex; flex-direction: column; gap: 1rem; min-width: 0;">
+        <section class="grid-panel panel-keywords">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Keyword Monitor</h2>
+              <p class="panel-subtitle">Filter live updates based on subjects</p>
+            </div>
+          </div>
+          <div class="toolbar-glass" style="margin-top: 0.5rem; margin-bottom: 0.5rem; gap: 0.4rem;">
+            <input type="text" id="news-keyword-input" placeholder="Add custom keyword..." class="glass-select" style="flex: 1; padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.8rem; background: var(--input-bg); border: 1px solid var(--border-glass); color: #fff;">
+            <button class="btn btn-primary btn-sm" id="btn-add-keyword" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 6px;">Add</button>
+          </div>
+          <div class="keyword-pills-container" id="keyword-pills-container" style="display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.5rem 0.2rem;">
+            <!-- Rendered dynamically -->
+          </div>
+        </section>
+
+        <section class="grid-panel panel-live-feed" style="flex: 1; display: flex; flex-direction: column; min-height: 400px;">
+          <div class="panel-header" style="justify-content: space-between; align-items: center;">
+            <div>
+              <h2 class="panel-title" style="display: flex; align-items: center; gap: 0.4rem;">
+                <span class="live-pulse-dot"></span> Live updates
+              </h2>
+              <p class="panel-subtitle">Simulated news stream</p>
+            </div>
+            <button class="btn btn-outline btn-sm" id="btn-clear-feed" style="padding: 0.3rem 0.6rem; font-size: 0.7rem;">Clear Feed</button>
+          </div>
+          <div class="live-feed-content" id="live-feed-content" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.75rem;">
+            <!-- Populated dynamically with simulated news events -->
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Tracked Categories Hub -->
+      <section class="grid-panel panel-news-categories" style="display: flex; flex-direction: column; height: 100%;">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 class="panel-title">Tracked News Items</h2>
+            <p class="panel-subtitle">Organize and formulate articles into social posts</p>
+          </div>
+          <div class="hub-tab-switcher" style="margin-left: auto;">
+            <button class="hub-tab active" data-category-filter="all">All</button>
+            <button class="hub-tab" data-category-filter="breaking">Breaking</button>
+            <button class="hub-tab" data-category-filter="updates">Updates</button>
+            <button class="hub-tab" data-category-filter="delivery">Service Delivery</button>
+            <button class="hub-tab" data-category-filter="consumer">Consumer</button>
+            <button class="hub-tab" data-category-filter="policy">Policy</button>
+          </div>
+        </div>
+
+        <div class="toolbar-glass" style="margin: 0.75rem 0; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-primary btn-sm" id="btn-add-news-manual" style="padding: 0.45rem 0.8rem; font-size: 0.8rem;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Tracked Article
+          </button>
+          <div class="search-box" style="flex: 1; margin: 0;">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="news-search-input" placeholder="Search tracked news..." style="font-size: 0.8rem;">
+          </div>
+        </div>
+
+        <div class="news-categories-list" id="news-categories-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
     </main>
   </div>
 
@@ -753,6 +833,49 @@ service cloud.firestore {
         <div class="modal-actions" style="margin-top:1.5rem;">
           <button type="button" class="btn btn-outline" id="btn-push-calendar-cancel">Cancel</button>
           <button type="submit" class="btn btn-primary" id="btn-push-calendar-save">Confirm Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add / Edit Tracked News Item Modal -->
+  <div class="modal-overlay" id="news-modal" style="display:none;">
+    <div class="modal-glass" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="news-modal-title">Track News Article</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-news-modal-close" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="news-form">
+        <input type="hidden" id="news-form-id">
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="news-form-title">Article Title</label>
+            <input type="text" id="news-form-title" required placeholder="e.g. Eskom Load Shedding Update">
+          </div>
+          <div class="form-group half-width">
+            <label for="news-form-category">Category</label>
+            <select id="news-form-category" class="glass-select">
+              <option value="breaking">Breaking News</option>
+              <option value="updates">Updates</option>
+              <option value="delivery">Service Delivery Issues</option>
+              <option value="consumer">Consumer Issues</option>
+              <option value="policy">Policy News</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="news-form-source">Source / Link / Publisher</label>
+          <input type="text" id="news-form-source" placeholder="e.g. MyBroadband, Carte Blanche, Twitter">
+        </div>
+        <div class="form-group">
+          <label for="news-form-summary">Key Details / Article Text</label>
+          <textarea id="news-form-summary" required placeholder="Paste the key contents, statements, or article snippets here to formulate copy from..." style="min-height: 120px;"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="btn-news-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-news-save">Save Article</button>
         </div>
       </form>
     </div>

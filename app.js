@@ -334,7 +334,39 @@ let appState = {
   currentCalendarDate: new Date(),
   calendarPlatformFilter: 'all',
   calendarViewMode: 'week',
-  activeOptimizerPlatform: 'instagram'
+  activeOptimizerPlatform: 'instagram',
+  // News Monitor state
+  currentWorkspace: 'calendar', // 'calendar' or 'news'
+  newsKeywords: loadStoredData('cb_news_keywords', ['Eskom', 'corruption', 'load shedding', 'inflation', 'policy', 'delivery']),
+  liveNewsFeed: loadStoredData('cb_live_news_feed', []),
+  trackedNewsItems: loadStoredData('cb_tracked_news_items', [
+    {
+      id: 'news-1',
+      title: 'City Power faces substation failure in Johannesburg North',
+      category: 'delivery',
+      source: 'Johannesburg Post',
+      summary: 'A critical transformer blew at the local substation this morning, plunging several blocks into blackout. Repairs are estimated to take 24 to 48 hours.',
+      timestamp: new Date(Date.now() - 4 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'news-2',
+      title: 'Consumer Price Index rises by 5.4% YoY',
+      category: 'consumer',
+      source: 'StatsSA Official Report',
+      summary: 'Consumer price inflation ticked higher last month, driven primarily by fuel prices and food cost increases. Analysts urge vigilance.',
+      timestamp: new Date(Date.now() - 8 * 3600 * 1000).toISOString()
+    },
+    {
+      id: 'news-3',
+      title: 'New Parliament bill proposes strict data security norms',
+      category: 'policy',
+      source: 'Government Gazette',
+      summary: 'Draft legislation detailing amendments to digital sovereignty regulations has been officially tabled for open public comment.',
+      timestamp: new Date(Date.now() - 20 * 3600 * 1000).toISOString()
+    }
+  ]),
+  activeNewsCategoryFilter: 'all',
+  newsSearchQuery: ''
 };
 
 // Sync copy version platforms from scheduled posts
@@ -638,7 +670,32 @@ const elements = {
   dbSettingsForm: document.getElementById('db-settings-form'),
   dbFirebaseConfig: document.getElementById('db-firebase-config'),
   btnDbSettingsCancel: document.getElementById('btn-db-settings-cancel'),
-  btnDbSettingsClose: document.getElementById('btn-db-settings-close')
+  btnDbSettingsClose: document.getElementById('btn-db-settings-close'),
+
+  // News Monitor DOM elements
+  navBtnCalendar: document.getElementById('nav-btn-calendar'),
+  navBtnNews: document.getElementById('nav-btn-news'),
+  newsMonitorGrid: document.getElementById('news-monitor-grid'),
+  panelScheduler: document.getElementById('panel-scheduler'),
+  dashboardGrid: document.querySelector('.dashboard-grid:not(.news-monitor-grid)'),
+  newsKeywordInput: document.getElementById('news-keyword-input'),
+  btnAddKeyword: document.getElementById('btn-add-keyword'),
+  keywordPillsContainer: document.getElementById('keyword-pills-container'),
+  liveFeedContent: document.getElementById('live-feed-content'),
+  btnClearFeed: document.getElementById('btn-clear-feed'),
+  btnManualNewsAdd: document.getElementById('btn-add-news-manual'),
+  newsSearchInput: document.getElementById('news-search-input'),
+  newsCategoriesList: document.getElementById('news-categories-list'),
+  newsModal: document.getElementById('news-modal'),
+  newsForm: document.getElementById('news-form'),
+  newsFormId: document.getElementById('news-form-id'),
+  newsFormTitle: document.getElementById('news-form-title'),
+  newsFormCategory: document.getElementById('news-form-category'),
+  newsFormSource: document.getElementById('news-form-source'),
+  newsFormSummary: document.getElementById('news-form-summary'),
+  btnNewsCancel: document.getElementById('btn-news-cancel'),
+  btnNewsModalClose: document.getElementById('btn-news-modal-close'),
+  newsTabs: document.querySelectorAll('.panel-news-categories .hub-tab-switcher button')
 };
 
 // Custom Suggestions Generator based on local parsed CSV data
@@ -1678,6 +1735,32 @@ function initEvents() {
   // Add Story button
   elements.btnAddStory.addEventListener('click', () => openStoryModal());
 
+  // ── News Monitor Tab Navigation ────────────────────────
+  if (elements.navBtnCalendar && elements.navBtnNews) {
+    [elements.navBtnCalendar, elements.navBtnNews].forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        appState.currentWorkspace = tab;
+        
+        elements.navBtnCalendar.classList.toggle('active', tab === 'calendar');
+        elements.navBtnNews.classList.toggle('active', tab === 'news');
+
+        if (tab === 'calendar') {
+          elements.newsMonitorGrid.style.display = 'none';
+          elements.panelScheduler.style.display = 'flex';
+          elements.dashboardGrid.style.display = 'grid';
+        } else {
+          elements.panelScheduler.style.display = 'none';
+          elements.dashboardGrid.style.display = 'none';
+          elements.newsMonitorGrid.style.display = 'grid';
+          renderKeywords();
+          renderLiveFeed();
+          renderTrackedNews();
+        }
+      });
+    });
+  }
+
   // Import DOCX button
   elements.btnImportDocx.addEventListener('click', () => elements.docxFileInput.click());
   elements.docxFileInput.addEventListener('change', (e) => {
@@ -2077,6 +2160,95 @@ function initEvents() {
       }
     });
   }
+
+  // ── News Monitor Event Listeners ─────────────────────
+  if (elements.btnAddKeyword) {
+    elements.btnAddKeyword.addEventListener('click', () => {
+      const val = elements.newsKeywordInput.value.trim().toLowerCase();
+      if (val && !appState.newsKeywords.includes(val)) {
+        appState.newsKeywords.push(val);
+        localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
+        elements.newsKeywordInput.value = '';
+        renderKeywords();
+        showToast(`Keyword "${val}" added!`);
+      }
+    });
+  }
+
+  if (elements.newsKeywordInput) {
+    elements.newsKeywordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        elements.btnAddKeyword.click();
+      }
+    });
+  }
+
+  if (elements.btnClearFeed) {
+    elements.btnClearFeed.addEventListener('click', () => {
+      appState.liveNewsFeed = [];
+      localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
+      renderLiveFeed();
+      showToast('Live news feed cleared.');
+    });
+  }
+
+  if (elements.btnManualNewsAdd) {
+    elements.btnManualNewsAdd.addEventListener('click', () => {
+      openNewsModal();
+    });
+  }
+
+  if (elements.newsSearchInput) {
+    elements.newsSearchInput.addEventListener('input', (e) => {
+      appState.newsSearchQuery = e.target.value.toLowerCase();
+      renderTrackedNews();
+    });
+  }
+
+  if (elements.newsForm) {
+    elements.newsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = elements.newsFormId.value;
+      const title = elements.newsFormTitle.value.trim();
+      const category = elements.newsFormCategory.value;
+      const source = elements.newsFormSource.value.trim() || 'Manual Entry';
+      const summary = elements.newsFormSummary.value.trim();
+
+      if (id) {
+        // Edit existing
+        const idx = appState.trackedNewsItems.findIndex(item => item.id === id);
+        if (idx !== -1) {
+          appState.trackedNewsItems[idx] = { id, title, category, source, summary, timestamp: new Date().toISOString() };
+          showToast('Tracked news article updated!');
+        }
+      } else {
+        // Add new
+        appState.trackedNewsItems.unshift({
+          id: `news-${Date.now()}`,
+          title, category, source, summary,
+          timestamp: new Date().toISOString()
+        });
+        showToast('News article added to tracking!');
+      }
+
+      localStorage.setItem('cb_tracked_news_items', JSON.stringify(appState.trackedNewsItems));
+      closeNewsModal();
+      renderTrackedNews();
+    });
+  }
+
+  if (elements.btnNewsCancel) elements.btnNewsCancel.addEventListener('click', closeNewsModal);
+  if (elements.btnNewsModalClose) elements.btnNewsModalClose.addEventListener('click', closeNewsModal);
+
+  // Category filter tabs switching
+  elements.newsTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      elements.newsTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      appState.activeNewsCategoryFilter = tab.dataset.categoryFilter;
+      renderTrackedNews();
+    });
+  });
 }
 
 // ── Copy Library Modal Helpers ────────────────────────────────────────────────
@@ -2106,6 +2278,321 @@ function openCopyItemModal(id = null) {
   }
 
   elements.copyItemModal.style.display = 'flex';
+}
+
+function closeCopyItemModal() {
+  elements.copyItemModal.style.display = 'none';
+}
+
+// ── News Monitor Rendering and Feed Simulation Helpers ─────────────────────────
+function renderKeywords() {
+  if (!elements.keywordPillsContainer) return;
+  const container = elements.keywordPillsContainer;
+  container.innerHTML = '';
+  
+  if (appState.newsKeywords.length === 0) {
+    container.innerHTML = `<span style="font-size:0.75rem; color:var(--text-muted);">No keywords set. Add keywords to filter simulated news updates.</span>`;
+    return;
+  }
+
+  appState.newsKeywords.forEach(kw => {
+    const pill = document.createElement('span');
+    pill.className = 'keyword-pill';
+    pill.innerHTML = `
+      #${kw}
+      <button class="btn-remove-keyword" data-keyword="${kw}" title="Remove keyword">&times;</button>
+    `;
+    pill.querySelector('.btn-remove-keyword').addEventListener('click', (e) => {
+      const keywordToRemove = e.target.dataset.keyword;
+      appState.newsKeywords = appState.newsKeywords.filter(k => k !== keywordToRemove);
+      localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
+      renderKeywords();
+      showToast(`Keyword "${keywordToRemove}" removed.`);
+    });
+    container.appendChild(pill);
+  });
+}
+
+function renderLiveFeed() {
+  if (!elements.liveFeedContent) return;
+  const container = elements.liveFeedContent;
+  container.innerHTML = '';
+
+  const matchedItems = appState.liveNewsFeed.filter(item => {
+    return appState.newsKeywords.some(kw => 
+      item.title.toLowerCase().includes(kw) || 
+      item.summary.toLowerCase().includes(kw)
+    );
+  });
+
+  if (matchedItems.length === 0) {
+    container.innerHTML = `
+      <div class="preview-placeholder" style="flex:1;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><circle cx="9" cy="9" r="2"/></svg>
+        <p style="font-size:0.75rem;">No updates matching keywords. Simulated updates arrive every 30 seconds.</p>
+      </div>
+    `;
+    return;
+  }
+
+  matchedItems.forEach(item => {
+    const card = document.createElement('div');
+    card.className = `live-feed-card news-card-${item.category}`;
+    
+    let categoryLabel = 'Breaking News';
+    if (item.category === 'updates') categoryLabel = 'Updates';
+    else if (item.category === 'delivery') categoryLabel = 'Service Delivery';
+    else if (item.category === 'consumer') categoryLabel = 'Consumer Issues';
+    else if (item.category === 'policy') categoryLabel = 'Policy News';
+
+    card.innerHTML = `
+      <div class="live-feed-card-header">
+        <span>Source: <strong>${escapeHtml(item.source)}</strong></span>
+        <span>${formatTimeAgo(new Date(item.timestamp))}</span>
+      </div>
+      <h4 class="live-feed-card-title">${escapeHtml(item.title)}</h4>
+      <p class="live-feed-card-summary">${escapeHtml(item.summary)}</p>
+      <div class="live-feed-card-actions">
+        <button class="btn btn-primary btn-sm btn-formulate" data-id="${item.id}" style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:4px;">Formulate Post</button>
+        <button class="btn btn-outline btn-sm btn-track-article" data-id="${item.id}" style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:4px;">Track Article</button>
+      </div>
+    `;
+
+    // Click handler for formulate post
+    card.querySelector('.btn-formulate').addEventListener('click', () => {
+      openFormulateModal(item.title, item.summary, item.source);
+    });
+
+    // Track article
+    card.querySelector('.btn-track-article').addEventListener('click', () => {
+      const exists = appState.trackedNewsItems.some(n => n.title === item.title);
+      if (exists) {
+        showToast('Article is already tracked!');
+      } else {
+        appState.trackedNewsItems.unshift({
+          id: `news-${Date.now()}`,
+          title: item.title,
+          category: item.category,
+          source: item.source,
+          summary: item.summary,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('cb_tracked_news_items', JSON.stringify(appState.trackedNewsItems));
+        renderTrackedNews();
+        showToast('Added to Tracked News Items!');
+      }
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function renderTrackedNews() {
+  if (!elements.newsCategoriesList) return;
+  const container = elements.newsCategoriesList;
+  container.innerHTML = '';
+
+  const filter = appState.activeNewsCategoryFilter;
+  const query = appState.newsSearchQuery;
+
+  const items = appState.trackedNewsItems.filter(item => {
+    const matchesCat = (filter === 'all' || item.category === filter);
+    const matchesSearch = !query || 
+      item.title.toLowerCase().includes(query) || 
+      item.summary.toLowerCase().includes(query);
+    return matchesCat && matchesSearch;
+  });
+
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div class="preview-placeholder" style="padding: 2rem 0;">
+        <p style="font-size:0.75rem;">No tracked articles match your criteria.</p>
+      </div>
+    `;
+    return;
+  }
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'news-tracker-item';
+    
+    let badgeClass = 'badge-cat-breaking';
+    let categoryLabel = 'Breaking News';
+    if (item.category === 'updates') { badgeClass = 'badge-cat-updates'; categoryLabel = 'Updates'; }
+    else if (item.category === 'delivery') { badgeClass = 'badge-cat-delivery'; categoryLabel = 'Service Delivery'; }
+    else if (item.category === 'consumer') { badgeClass = 'badge-cat-consumer'; categoryLabel = 'Consumer Issues'; }
+    else if (item.category === 'policy') { badgeClass = 'badge-cat-policy'; categoryLabel = 'Policy News'; }
+
+    card.innerHTML = `
+      <div class="news-tracker-header">
+        <div>
+          <span class="news-category-badge ${badgeClass}">${categoryLabel}</span>
+          <span style="font-size:0.7rem; color:var(--text-muted); margin-left:0.4rem;">Source: ${escapeHtml(item.source)}</span>
+        </div>
+        <div style="display:flex; gap:0.35rem;">
+          <button class="btn-copy-lib-action btn-news-edit" data-id="${item.id}" title="Edit article">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-copy-lib-action btn-copy-lib-delete btn-news-delete" data-id="${item.id}" title="Delete article">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <h4 class="live-feed-card-title">${escapeHtml(item.title)}</h4>
+      <p class="live-feed-card-summary">${escapeHtml(item.summary)}</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.25rem;">
+        <span style="font-size:0.7rem; color:var(--text-muted);">${formatTimeAgo(new Date(item.timestamp))}</span>
+        <button class="btn btn-primary btn-sm btn-formulate-tracked" data-id="${item.id}" style="font-size:0.7rem; padding:0.25rem 0.65rem; border-radius:4px;">
+          Formulate Draft Post
+        </button>
+      </div>
+    `;
+
+    card.querySelector('.btn-formulate-tracked').addEventListener('click', () => {
+      openFormulateModal(item.title, item.summary, item.source);
+    });
+
+    card.querySelector('.btn-news-edit').addEventListener('click', () => {
+      openNewsModal(item.id);
+    });
+
+    card.querySelector('.btn-news-delete').addEventListener('click', () => {
+      appState.trackedNewsItems = appState.trackedNewsItems.filter(n => n.id !== item.id);
+      localStorage.setItem('cb_tracked_news_items', JSON.stringify(appState.trackedNewsItems));
+      renderTrackedNews();
+      showToast('Article removed from tracking.');
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function openNewsModal(id = null) {
+  elements.newsFormId.value = '';
+  elements.newsFormTitle.value = '';
+  elements.newsFormCategory.value = 'breaking';
+  elements.newsFormSource.value = '';
+  elements.newsFormSummary.value = '';
+
+  if (id) {
+    const item = appState.trackedNewsItems.find(n => n.id === id);
+    if (item) {
+      elements.newsFormId.value = item.id;
+      elements.newsFormTitle.value = item.title;
+      elements.newsFormCategory.value = item.category;
+      elements.newsFormSource.value = item.source;
+      elements.newsFormSummary.value = item.summary;
+    }
+  }
+
+  elements.newsModal.style.display = 'flex';
+}
+
+function closeNewsModal() {
+  elements.newsModal.style.display = 'none';
+}
+
+function openFormulateModal(title, summary, source) {
+  openNewPostModal();
+  elements.formPostTitle.value = `News Post: ${title.substring(0, 30)}...`;
+  
+  // Format template social copy based on the source and article summary
+  elements.formPostText.value = `BREAKING NEWS // ${title.toUpperCase()}\n\n${summary.substring(0, 160)}...\n\nSource: ${source} #CarteBlanche #SocialUpdates`;
+  
+  const charCounter = elements.formCharCount;
+  if (charCounter) {
+    charCounter.textContent = `${elements.formPostText.value.length} characters`;
+  }
+}
+
+// Background Live News Simulation Loop
+let newsSimulationInterval = null;
+const SIMULATION_TEMPLATES = [
+  {
+    title: "Eskom reports unit failures at Tutuka and Majuba stations",
+    category: "delivery",
+    source: "PowerWatch SA",
+    summary: "Two generation units broke down early today, putting severe pressure on capacity. Energy analysts predict load shedding stages may escalate tomorrow."
+  },
+  {
+    title: "Gauteng water reservoir levels fall below 35%",
+    category: "delivery",
+    source: "Municipal Bulletin",
+    summary: "Due to high temperatures and pumping station failures, municipal water boards warn that supply restrictions will be enforced across JHB Metro."
+  },
+  {
+    title: "New Treasury regulations proposed to tighten tender transparency",
+    category: "policy",
+    source: "Financial News",
+    summary: "The Finance Department announced draft regulations mandating real-time database auditing of all municipal tenders exceeding 5 million ZAR."
+  },
+  {
+    title: "Nersa approves tariff restructure for major industrial users",
+    category: "policy",
+    source: "Business Intelligence",
+    summary: "National Energy Regulator has signed off on changes to peak industrial rates, hoping to incentivize heavy factories to operate during off-peak hours."
+  },
+  {
+    title: "Scam alert: SMS phishing targeting banking clients nationwide",
+    category: "consumer",
+    source: "SA Banking Risk Office",
+    summary: "Security researchers identify a massive spoofing campaign sending fake text warnings about account suspension to collect client login keys."
+  },
+  {
+    title: "Petrol prices estimated to increase by 42c next month",
+    category: "consumer",
+    source: "Automobile Club",
+    summary: "Rising global oil benchmarks combined with local currency pressure point to a retail price hike. Transport logistics groups warn margins will suffer."
+  },
+  {
+    title: "Corruption trial of regional director set to resume",
+    category: "breaking",
+    source: "News24",
+    summary: "The High Court will reopen the hearing on financial irregularities surrounding regional infrastructure budgets. The state prosecutor files new evidence."
+  },
+  {
+    title: "Special Investigating Unit raids municipal procurement offices",
+    category: "breaking",
+    source: "SIU Press Office",
+    summary: "Investigators have secured digital documents and contracts detailing municipal hardware acquisitions that took place over the last fiscal year."
+  }
+];
+
+function initNewsSimulation() {
+  if (newsSimulationInterval) clearInterval(newsSimulationInterval);
+
+  // Generate 2 seed articles instantly on start if feed is empty
+  if (appState.liveNewsFeed.length === 0) {
+    for (let i = 0; i < 3; i++) {
+      const template = SIMULATION_TEMPLATES[Math.floor(Math.random() * SIMULATION_TEMPLATES.length)];
+      appState.liveNewsFeed.unshift({
+        id: `sim-${Date.now()}-${i}`,
+        ...template,
+        timestamp: new Date(Date.now() - i * 15 * 60 * 1000).toISOString()
+      });
+    }
+    localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
+  }
+
+  newsSimulationInterval = setInterval(() => {
+    const template = SIMULATION_TEMPLATES[Math.floor(Math.random() * SIMULATION_TEMPLATES.length)];
+    appState.liveNewsFeed.unshift({
+      id: `sim-${Date.now()}`,
+      ...template,
+      timestamp: new Date().toISOString()
+    });
+
+    // Cap at 25 simulated items
+    if (appState.liveNewsFeed.length > 25) {
+      appState.liveNewsFeed.pop();
+    }
+
+    localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
+    
+    if (appState.currentWorkspace === 'news') {
+      renderLiveFeed();
+    }
+  }, 30000); // Trigger simulated article every 30 seconds
 }
 
 function closeCopyItemModal() {
@@ -3899,6 +4386,9 @@ function init() {
   renderCalendar();
   updateStats();
   
+  // Initialize News Monitor Background Simulation
+  initNewsSimulation();
+
   // Start by previewing the first post if any exists
   if (appState.posts.length > 0) {
     appState.selectedPreviewPostId = appState.posts[0].id;
