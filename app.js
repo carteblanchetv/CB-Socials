@@ -337,7 +337,7 @@ let appState = {
   activeOptimizerPlatform: 'instagram',
   // News Monitor state
   currentWorkspace: 'calendar', // 'calendar' or 'news'
-  newsKeywords: loadStoredData('cb_news_keywords', ['Eskom', 'corruption', 'load shedding', 'inflation', 'policy', 'delivery']),
+  newsKeywords: loadStoredData('cb_news_keywords', ['eskom', 'corruption', 'load shedding', 'inflation', 'policy', 'delivery']),
   liveNewsFeed: loadStoredData('cb_live_news_feed', []),
   trackedNewsItems: loadStoredData('cb_tracked_news_items', [
     {
@@ -367,7 +367,7 @@ let appState = {
   ]),
   activeNewsCategoryFilter: 'all',
   newsSearchQuery: '',
-  newsFeedSource: loadStoredData('cb_news_feed_source', 'simulated'), // 'simulated' or 'live-rss'
+  newsFeedSource: loadStoredData('cb_news_feed_source', 'live-rss'), // 'simulated' or 'live-rss'
   rssFeeds: loadStoredData('cb_rss_feeds', [
     'https://feeds.24.com/articles/news24/SouthAfrica/rss',
     'https://feeds.24.com/articles/netwerk24/nuus/rss',
@@ -2407,17 +2407,22 @@ function renderLiveFeed() {
   container.innerHTML = '';
 
   const matchedItems = appState.liveNewsFeed.filter(item => {
-    return appState.newsKeywords.some(kw => 
-      item.title.toLowerCase().includes(kw) || 
-      item.summary.toLowerCase().includes(kw)
-    );
+    return appState.newsKeywords.some(kw => {
+      const kwLower = kw.toLowerCase();
+      return item.title.toLowerCase().includes(kwLower) || 
+             item.summary.toLowerCase().includes(kwLower);
+    });
   });
 
   if (matchedItems.length === 0) {
+    const isLive = appState.newsFeedSource === 'live-rss';
+    const message = isLive
+      ? 'No live updates matching keywords. Try adding more general keywords or check your internet connection.'
+      : 'No updates matching keywords. Simulated updates arrive every 30 seconds.';
     container.innerHTML = `
       <div class="preview-placeholder" style="flex:1;">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><circle cx="9" cy="9" r="2"/></svg>
-        <p style="font-size:0.75rem;">No updates matching keywords. Simulated updates arrive every 30 seconds.</p>
+        <p style="font-size:0.75rem;">${message}</p>
       </div>
     `;
     return;
@@ -2786,8 +2791,8 @@ const SIMULATION_TEMPLATES = [
 function initNewsSimulation() {
   if (newsSimulationInterval) clearInterval(newsSimulationInterval);
 
-  // Generate 2 seed articles instantly on start if feed is empty
-  if (appState.liveNewsFeed.length === 0) {
+  // Generate 2 seed articles instantly on start if feed is empty and source is simulated
+  if (appState.newsFeedSource === 'simulated' && appState.liveNewsFeed.length === 0) {
     for (let i = 0; i < 3; i++) {
       const template = SIMULATION_TEMPLATES[Math.floor(Math.random() * SIMULATION_TEMPLATES.length)];
       appState.liveNewsFeed.unshift({
@@ -2800,6 +2805,8 @@ function initNewsSimulation() {
   }
 
   newsSimulationInterval = setInterval(() => {
+    if (appState.newsFeedSource !== 'simulated') return;
+
     const template = SIMULATION_TEMPLATES[Math.floor(Math.random() * SIMULATION_TEMPLATES.length)];
     appState.liveNewsFeed.unshift({
       id: `sim-${Date.now()}`,

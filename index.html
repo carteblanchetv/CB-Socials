@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4.42">
+  <link rel="stylesheet" href="style.css?v=4.43">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -26,7 +26,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=11.0').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=11.1').then(reg => {
           reg.update();
         }).catch(err => {
           console.warn('Service worker registration failed:', err);
@@ -297,12 +297,12 @@
               <h2 class="panel-title" style="display: flex; align-items: center; gap: 0.4rem;">
                 <span class="live-pulse-dot"></span> Live updates
               </h2>
-              <p class="panel-subtitle" id="live-feed-subtitle">Simulated news stream</p>
+              <p class="panel-subtitle" id="live-feed-subtitle">Live RSS website feed</p>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <select id="feed-source-selector" class="glass-select" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 6px; background: var(--input-bg); border: 1px solid var(--border-glass); color: #fff;">
+                <option value="live-rss" selected>Live RSS Feeds</option>
                 <option value="simulated">Generator Feed</option>
-                <option value="live-rss">Live RSS Feeds</option>
               </select>
               <button class="btn btn-outline btn-sm" id="btn-manage-rss" title="Manage RSS Feeds" style="padding: 0.28rem 0.5rem; font-size: 0.7rem; display: none;">Manage RSS</button>
               <button class="btn btn-outline btn-sm" id="btn-clear-feed" style="padding: 0.28rem 0.5rem; font-size: 0.7rem;">Clear</button>
@@ -921,6 +921,6 @@ service cloud.firestore {
     <span class="toast-message">Copied to clipboard!</span>
   </div>
 
-  <script src="app.js?v=4.42"></script>
+  <script src="app.js?v=4.43"></script>
 </body>
 </html>
