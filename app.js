@@ -369,9 +369,24 @@ let appState = {
   newsSearchQuery: '',
   newsFeedSource: loadStoredData('cb_news_feed_source', 'simulated'), // 'simulated' or 'live-rss'
   rssFeeds: loadStoredData('cb_rss_feeds', [
-    'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
-    'https://feeds.bbci.co.uk/news/world/rss.xml',
-    'https://www.mybroadband.co.za/news/feed'
+    'https://feeds.24.com/articles/news24/SouthAfrica/rss',
+    'https://feeds.24.com/articles/netwerk24/nuus/rss',
+    'https://ewn.co.za/RSS%20Feeds/Latest%20News',
+    'https://rss.iol.io/iol/news',
+    'https://www.dailymaverick.co.za/feed/',
+    'https://maroelamedia.co.za/feed/',
+    'https://mg.co.za/feed/',
+    'https://businesstech.co.za/news/feed/',
+    'https://mybroadband.co.za/news/feed/',
+    'https://techcentral.co.za/feed/',
+    'https://teeveetee.blogspot.com/feeds/posts/default?alt=rss',
+    'https://www.businesslive.co.za/bd/rss',
+    'https://www.moneyweb.co.za/feed/',
+    'https://www.enca.com/feed/rss/latest-news',
+    'https://www.timeslive.co.za/rss/',
+    'https://www.dispatchlive.co.za/rss/',
+    'https://www.citizen.co.za/feed/',
+    'https://www.citizen.co.za/network-news/feed/'
   ])
 };
 
