@@ -366,7 +366,13 @@ let appState = {
     }
   ]),
   activeNewsCategoryFilter: 'all',
-  newsSearchQuery: ''
+  newsSearchQuery: '',
+  newsFeedSource: loadStoredData('cb_news_feed_source', 'simulated'), // 'simulated' or 'live-rss'
+  rssFeeds: loadStoredData('cb_rss_feeds', [
+    'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
+    'https://feeds.bbci.co.uk/news/world/rss.xml',
+    'https://www.mybroadband.co.za/news/feed'
+  ])
 };
 
 // Sync copy version platforms from scheduled posts
@@ -695,7 +701,18 @@ const elements = {
   newsFormSummary: document.getElementById('news-form-summary'),
   btnNewsCancel: document.getElementById('btn-news-cancel'),
   btnNewsModalClose: document.getElementById('btn-news-modal-close'),
-  newsTabs: document.querySelectorAll('.panel-news-categories .hub-tab-switcher button')
+  newsTabs: document.querySelectorAll('.panel-news-categories .hub-tab-switcher button'),
+  
+  // RSS Feed references
+  feedSourceSelector: document.getElementById('feed-source-selector'),
+  btnManageRss: document.getElementById('btn-manage-rss'),
+  rssManagerModal: document.getElementById('rss-manager-modal'),
+  btnRssManagerClose: document.getElementById('btn-rss-manager-close'),
+  btnRssManagerDone: document.getElementById('btn-rss-manager-done'),
+  rssFeedForm: document.getElementById('rss-feed-form'),
+  rssFeedUrl: document.getElementById('rss-feed-url'),
+  rssFeedsList: document.getElementById('rss-feeds-list'),
+  liveFeedSubtitle: document.getElementById('live-feed-subtitle')
 };
 
 // Custom Suggestions Generator based on local parsed CSV data
@@ -2253,6 +2270,56 @@ function initEvents() {
       renderTrackedNews();
     });
   });
+
+  // RSS Feed triggers
+  if (elements.feedSourceSelector) {
+    // Set initial value
+    elements.feedSourceSelector.value = appState.newsFeedSource;
+    elements.btnManageRss.style.display = appState.newsFeedSource === 'live-rss' ? 'inline-block' : 'none';
+    if (elements.liveFeedSubtitle) {
+      elements.liveFeedSubtitle.textContent = appState.newsFeedSource === 'live-rss' ? 'Live RSS website feed' : 'Simulated news stream';
+    }
+
+    elements.feedSourceSelector.addEventListener('change', (e) => {
+      const val = e.target.value;
+      appState.newsFeedSource = val;
+      localStorage.setItem('cb_news_feed_source', val);
+      elements.btnManageRss.style.display = val === 'live-rss' ? 'inline-block' : 'none';
+      if (elements.liveFeedSubtitle) {
+        elements.liveFeedSubtitle.textContent = val === 'live-rss' ? 'Live RSS website feed' : 'Simulated news stream';
+      }
+
+      if (val === 'live-rss') {
+        fetchLiveRSSFeeds();
+      } else {
+        renderLiveFeed();
+      }
+    });
+  }
+
+  if (elements.btnManageRss) {
+    elements.btnManageRss.addEventListener('click', () => {
+      openRssManagerModal();
+    });
+  }
+
+  if (elements.btnRssManagerClose) elements.btnRssManagerClose.addEventListener('click', closeRssManagerModal);
+  if (elements.btnRssManagerDone) elements.btnRssManagerDone.addEventListener('click', closeRssManagerModal);
+
+  if (elements.rssFeedForm) {
+    elements.rssFeedForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const url = elements.rssFeedUrl.value.trim();
+      if (url && !appState.rssFeeds.includes(url)) {
+        appState.rssFeeds.push(url);
+        localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+        elements.rssFeedUrl.value = '';
+        renderRssFeedsList();
+        fetchLiveRSSFeeds();
+        showToast('RSS Feed added!');
+      }
+    });
+  }
 }
 
 // ── Copy Library Modal Helpers ────────────────────────────────────────────────
@@ -2506,6 +2573,143 @@ function openFormulateModal(title, summary, source) {
   const charCounter = elements.formCharCount;
   if (charCounter) {
     charCounter.textContent = `${elements.formPostText.value.length} characters`;
+  }
+}
+
+// ── RSS Feeds Manager & Client Fetcher ─────────────────────────────────────────
+function openRssManagerModal() {
+  renderRssFeedsList();
+  elements.rssManagerModal.style.display = 'flex';
+}
+
+function closeRssManagerModal() {
+  elements.rssManagerModal.style.display = 'none';
+}
+
+function renderRssFeedsList() {
+  const container = elements.rssFeedsList;
+  container.innerHTML = '';
+
+  if (appState.rssFeeds.length === 0) {
+    container.innerHTML = `<div style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:1rem 0;">No feeds added yet.</div>`;
+    return;
+  }
+
+  appState.rssFeeds.forEach((feed, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.15); padding:0.4rem 0.6rem; border-radius:6px; border:1px solid var(--border-glass); font-size:0.75rem;';
+    
+    let domain = 'Feed';
+    try {
+      domain = new URL(feed).hostname;
+    } catch(e){}
+
+    row.innerHTML = `
+      <div style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:0.5rem;" title="${feed}">
+        <strong>${domain}</strong> <span style="color:var(--text-muted); font-size:0.7rem;">(${feed})</span>
+      </div>
+      <button class="btn-copy-lib-action btn-rss-delete" data-index="${idx}" style="color:var(--color-danger); cursor:pointer;">
+        &times;
+      </button>
+    `;
+
+    row.querySelector('.btn-rss-delete').addEventListener('click', (e) => {
+      const index = parseInt(e.target.dataset.index, 10);
+      appState.rssFeeds.splice(index, 1);
+      localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+      renderRssFeedsList();
+      fetchLiveRSSFeeds();
+      showToast('RSS Feed removed.');
+    });
+
+    container.appendChild(row);
+  });
+}
+
+// Client-side RSS fetching via public cross-origin API proxies
+async function fetchLiveRSSFeeds() {
+  if (appState.newsFeedSource !== 'live-rss') return;
+
+  if (appState.rssFeeds.length === 0) {
+    appState.liveNewsFeed = [];
+    renderLiveFeed();
+    return;
+  }
+
+  let allItems = [];
+  const container = elements.liveFeedContent;
+  container.innerHTML = `
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem; gap:0.5rem;">
+      <span class="live-pulse-dot" style="background:#60a5fa; box-shadow: 0 0 8px #60a5fa;"></span>
+      <span style="font-size:0.75rem; color:var(--text-muted);">Fetching live feeds...</span>
+    </div>
+  `;
+
+  // Fetch feeds sequentially/concurrently
+  const fetchPromises = appState.rssFeeds.map(async (feedUrl) => {
+    try {
+      // Use free CORS proxy to fetch RSS XML in client-side
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) return;
+      const data = await res.json();
+      
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+      const items = xmlDoc.querySelectorAll("item");
+      const channelTitle = xmlDoc.querySelector("channel > title")?.textContent || "RSS Feed";
+
+      items.forEach((item, idx) => {
+        // limit to 10 articles per feed
+        if (idx >= 10) return;
+
+        const title = item.querySelector("title")?.textContent || "No Title";
+        const link = item.querySelector("link")?.textContent || feedUrl;
+        const descriptionRaw = item.querySelector("description")?.textContent || "";
+        
+        // Strip html tags from description
+        const summary = descriptionRaw.replace(/<\/?[^>]+(>|$)/g, "").substring(0, 160);
+        const pubDateStr = item.querySelector("pubDate")?.textContent;
+        const timestamp = pubDateStr ? new Date(pubDateStr).toISOString() : new Date().toISOString();
+
+        // Infer Category based on Title keywords
+        let category = 'updates';
+        const titleL = title.toLowerCase();
+        if (titleL.includes('break') || titleL.includes('kill') || titleL.includes('warn') || titleL.includes('arrest')) {
+          category = 'breaking';
+        } else if (titleL.includes('power') || titleL.includes('water') || titleL.includes('eskom') || titleL.includes('municip') || titleL.includes('load')) {
+          category = 'delivery';
+        } else if (titleL.includes('price') || titleL.includes('inflation') || titleL.includes('scam') || titleL.includes('bank') || titleL.includes('fraud')) {
+          category = 'consumer';
+        } else if (titleL.includes('bill') || titleL.includes('parliament') || titleL.includes('court') || titleL.includes('policy') || titleL.includes('law')) {
+          category = 'policy';
+        }
+
+        allItems.push({
+          id: `rss-${channelTitle}-${idx}-${Date.now()}`,
+          title,
+          summary,
+          category,
+          source: channelTitle,
+          link,
+          timestamp
+        });
+      });
+    } catch (err) {
+      console.warn(`Failed to parse RSS Feed: ${feedUrl}`, err);
+    }
+  });
+
+  await Promise.all(fetchPromises);
+
+  // Sort by date descending
+  allItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  appState.liveNewsFeed = allItems;
+  localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
+  
+  if (appState.currentWorkspace === 'news') {
+    renderLiveFeed();
   }
 }
 
@@ -4392,6 +4596,9 @@ function init() {
   
   // Initialize News Monitor Background Simulation
   initNewsSimulation();
+  if (appState.newsFeedSource === 'live-rss') {
+    fetchLiveRSSFeeds();
+  }
 
   // Start by previewing the first post if any exists
   if (appState.posts.length > 0) {

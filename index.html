@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;550;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4.39">
+  <link rel="stylesheet" href="style.css?v=4.40">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/CB%20Logo%20SMALL.png">
   <!-- Mammoth.js for client-side DOCX Word file parsing -->
@@ -297,9 +297,16 @@
               <h2 class="panel-title" style="display: flex; align-items: center; gap: 0.4rem;">
                 <span class="live-pulse-dot"></span> Live updates
               </h2>
-              <p class="panel-subtitle">Simulated news stream</p>
+              <p class="panel-subtitle" id="live-feed-subtitle">Simulated news stream</p>
             </div>
-            <button class="btn btn-outline btn-sm" id="btn-clear-feed" style="padding: 0.3rem 0.6rem; font-size: 0.7rem;">Clear Feed</button>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <select id="feed-source-selector" class="glass-select" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 6px; background: var(--input-bg); border: 1px solid var(--border-glass); color: #fff;">
+                <option value="simulated">Generator Feed</option>
+                <option value="live-rss">Live RSS Feeds</option>
+              </select>
+              <button class="btn btn-outline btn-sm" id="btn-manage-rss" title="Manage RSS Feeds" style="padding: 0.28rem 0.5rem; font-size: 0.7rem; display: none;">Manage RSS</button>
+              <button class="btn btn-outline btn-sm" id="btn-clear-feed" style="padding: 0.28rem 0.5rem; font-size: 0.7rem;">Clear</button>
+            </div>
           </div>
           <div class="live-feed-content" id="live-feed-content" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.75rem;">
             <!-- Populated dynamically with simulated news events -->
@@ -881,11 +888,39 @@ service cloud.firestore {
     </div>
   </div>
 
+  <!-- Manage RSS Feeds Modal -->
+  <div class="modal-overlay" id="rss-manager-modal" style="display:none;">
+    <div class="modal-glass" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Manage RSS Feeds</h3>
+        <button class="btn btn-icon btn-modal-close" id="btn-rss-manager-close" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:1rem; line-height:1.4;">
+        Add URLs to live news RSS feeds. (Note: External feeds are fetched using a free client-side proxy. Feeds must be public XML feeds).
+      </p>
+      
+      <form id="rss-feed-form" style="display:flex; gap:0.4rem; margin-bottom:1rem;">
+        <input type="url" id="rss-feed-url" required placeholder="https://news-site.com/rss" class="glass-select" style="flex:1; padding:0.45rem; border-radius:6px; font-size:0.8rem; background:rgba(0,0,0,0.25); border:1px solid var(--border-glass); color:#fff;">
+        <button type="submit" class="btn btn-primary btn-sm" style="padding:0.45rem 0.85rem; border-radius:6px;">Add Feed</button>
+      </form>
+
+      <div class="rss-feeds-list" id="rss-feeds-list" style="display:flex; flex-direction:column; gap:0.4rem; max-height:220px; overflow-y:auto; padding-right:0.2rem; margin-bottom:1rem;">
+        <!-- Populated dynamically -->
+      </div>
+      
+      <div class="modal-actions" style="justify-content: flex-end;">
+        <button class="btn btn-primary btn-sm" id="btn-rss-manager-done">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Notification Toast -->
   <div class="toast-notification" id="toast">
     <span class="toast-message">Copied to clipboard!</span>
   </div>
 
-  <script src="app.js?v=4.39"></script>
+  <script src="app.js?v=4.40"></script>
 </body>
 </html>
