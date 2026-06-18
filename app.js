@@ -2191,6 +2191,7 @@ function initEvents() {
         localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
         elements.newsKeywordInput.value = '';
         renderKeywords();
+        renderLiveFeed(); // Update the live feed immediately to reflect the new keyword filter
         showToast(`Keyword "${val}" added!`);
       }
     });
@@ -2378,6 +2379,7 @@ function renderKeywords() {
       appState.newsKeywords = appState.newsKeywords.filter(k => k !== keywordToRemove);
       localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
       renderKeywords();
+      renderLiveFeed(); // Update the live feed immediately to reflect the removed keyword filter
       showToast(`Keyword "${keywordToRemove}" removed.`);
     });
     container.appendChild(pill);
