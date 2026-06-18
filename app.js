@@ -1746,10 +1746,14 @@ function initEvents() {
         elements.navBtnNews.classList.toggle('active', tab === 'news');
 
         if (tab === 'calendar') {
+          document.body.classList.add('body-workspace-calendar');
+          document.body.classList.remove('body-workspace-news');
           elements.newsMonitorGrid.style.display = 'none';
           elements.panelScheduler.style.display = 'flex';
           elements.dashboardGrid.style.display = 'grid';
         } else {
+          document.body.classList.add('body-workspace-news');
+          document.body.classList.remove('body-workspace-calendar');
           elements.panelScheduler.style.display = 'none';
           elements.dashboardGrid.style.display = 'none';
           elements.newsMonitorGrid.style.display = 'grid';

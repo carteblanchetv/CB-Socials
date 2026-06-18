@@ -2827,18 +2827,50 @@ textarea {
 .app-nav-tabs .nav-tab:hover svg {
   transform: scale(1.1);
 }
-.app-nav-tabs .nav-tab.active {
+/* Calendar button active (Blue Theme) */
+#nav-btn-calendar.nav-tab.active {
   background: linear-gradient(135deg, var(--primary) 0%, #00a4ff 100%);
   color: #fff;
   box-shadow: 0 4px 15px rgba(0, 130, 195, 0.45);
+  font-weight: 700;
+}
+/* News button active (Emerald Green Theme) */
+#nav-btn-news.nav-tab.active {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.45);
   font-weight: 700;
 }
 [data-theme="light"] .app-nav-tabs {
   background: rgba(255, 255, 255, 0.8);
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
-[data-theme="light"] .app-nav-tabs .nav-tab.active {
+[data-theme="light"] #nav-btn-calendar.nav-tab.active {
   background: linear-gradient(135deg, var(--primary) 0%, #009be5 100%);
+}
+[data-theme="light"] #nav-btn-news.nav-tab.active {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+/* Distinct Workspace Body Color Accents */
+/* Shift glow backdrops & scrollbars on body active workspace class */
+body.body-workspace-news {
+  --primary: #10b981;
+  --primary-hover: #34d399;
+  --primary-glow: rgba(16, 185, 129, 0.35);
+}
+body.body-workspace-news .logo-text span {
+  color: #10b981;
+}
+body.body-workspace-news .logo-icon {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+body.body-workspace-news .bg-purple {
+  background: radial-gradient(circle, #059669 0%, transparent 70%);
+}
+body.body-workspace-news .bg-blue {
+  background: radial-gradient(circle, #10b981 0%, transparent 70%);
 }
 
 /* Keyword Monitor Pills */
