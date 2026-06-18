@@ -2831,10 +2831,25 @@ async function fetchLiveRSSFeeds() {
 
   await Promise.all(fetchPromises);
 
-  // Sort by date descending
-  allItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  // Merge new items with existing items, ensuring uniqueness by link or title
+  const existingItems = appState.liveNewsFeed || [];
+  const mergedItems = [...allItems];
   
-  appState.liveNewsFeed = allItems;
+  existingItems.forEach(existing => {
+    const isDuplicate = mergedItems.some(item => 
+      (item.link && existing.link && item.link === existing.link) || 
+      (item.title === existing.title)
+    );
+    if (!isDuplicate) {
+      mergedItems.push(existing);
+    }
+  });
+
+  // Sort by date descending
+  mergedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  // Keep up to 150 historic news items
+  appState.liveNewsFeed = mergedItems.slice(0, 150);
   localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
   
   if (appState.currentWorkspace === 'news') {
