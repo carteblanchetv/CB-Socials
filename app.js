@@ -4294,15 +4294,19 @@ function setupRealtimeSettingsSubscription() {
 
           if (data.feeds && Array.isArray(data.feeds)) {
             const normalizedFeeds = Array.from(new Set(data.feeds.map(normalizeRssUrl)));
-            const match = appState.rssFeeds.length === normalizedFeeds.length &&
-                          appState.rssFeeds.every((f, idx) => f === normalizedFeeds[idx]);
-            if (!match) {
-              appState.rssFeeds = normalizedFeeds;
-              localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
-              if (appState.currentWorkspace === 'news') {
-                renderRssFeedsList();
-                changed = true;
+            if (normalizedFeeds.length > 0) {
+              const match = appState.rssFeeds.length === normalizedFeeds.length &&
+                            appState.rssFeeds.every((f, idx) => f === normalizedFeeds[idx]);
+              if (!match) {
+                appState.rssFeeds = normalizedFeeds;
+                localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
+                if (appState.currentWorkspace === 'news') {
+                  renderRssFeedsList();
+                  changed = true;
+                }
               }
+            } else if (appState.rssFeeds.length > 0) {
+              saveSettingsToCloud();
             }
           }
 
@@ -4337,15 +4341,19 @@ function setupRealtimeSettingsSubscription() {
 
           if (data.feeds && Array.isArray(data.feeds)) {
             const normalizedFeeds = Array.from(new Set(data.feeds.map(normalizeRssUrl)));
-            const match = appState.globalRssFeeds.length === normalizedFeeds.length &&
-                          appState.globalRssFeeds.every((f, idx) => f === normalizedFeeds[idx]);
-            if (!match) {
-              appState.globalRssFeeds = normalizedFeeds;
-              localStorage.setItem('cb_global_rss_feeds', JSON.stringify(appState.globalRssFeeds));
-              if (appState.currentWorkspace === 'global-news') {
-                renderRssFeedsList();
-                changed = true;
+            if (normalizedFeeds.length > 0) {
+              const match = appState.globalRssFeeds.length === normalizedFeeds.length &&
+                            appState.globalRssFeeds.every((f, idx) => f === normalizedFeeds[idx]);
+              if (!match) {
+                appState.globalRssFeeds = normalizedFeeds;
+                localStorage.setItem('cb_global_rss_feeds', JSON.stringify(appState.globalRssFeeds));
+                if (appState.currentWorkspace === 'global-news') {
+                  renderRssFeedsList();
+                  changed = true;
+                }
               }
+            } else if (appState.globalRssFeeds.length > 0) {
+              saveSettingsToCloud();
             }
           }
 
@@ -4380,15 +4388,19 @@ function setupRealtimeSettingsSubscription() {
 
           if (data.feeds && Array.isArray(data.feeds)) {
             const normalizedFeeds = Array.from(new Set(data.feeds.map(normalizeRssUrl)));
-            const match = appState.pressReleasesFeeds.length === normalizedFeeds.length &&
-                          appState.pressReleasesFeeds.every((f, idx) => f === normalizedFeeds[idx]);
-            if (!match) {
-              appState.pressReleasesFeeds = normalizedFeeds;
-              localStorage.setItem('cb_press_releases_feeds', JSON.stringify(appState.pressReleasesFeeds));
-              if (appState.currentWorkspace === 'press-releases') {
-                renderRssFeedsList();
-                changed = true;
+            if (normalizedFeeds.length > 0) {
+              const match = appState.pressReleasesFeeds.length === normalizedFeeds.length &&
+                            appState.pressReleasesFeeds.every((f, idx) => f === normalizedFeeds[idx]);
+              if (!match) {
+                appState.pressReleasesFeeds = normalizedFeeds;
+                localStorage.setItem('cb_press_releases_feeds', JSON.stringify(appState.pressReleasesFeeds));
+                if (appState.currentWorkspace === 'press-releases') {
+                  renderRssFeedsList();
+                  changed = true;
+                }
               }
+            } else if (appState.pressReleasesFeeds.length > 0) {
+              saveSettingsToCloud();
             }
           }
 
