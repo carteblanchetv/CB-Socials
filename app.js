@@ -1536,6 +1536,7 @@ function switchWorkspace(tab) {
     if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'none';
     if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'grid';
     
+    appState.newsFeedPage = 1; // Reset pagination page to 1
     renderKeywords();
     renderNewsTabsSwitcher();
     renderRssFeedsList();
@@ -2325,6 +2326,7 @@ function initEvents() {
           keywordsArray.push(val);
           localStorage.setItem(storageKey, JSON.stringify(keywordsArray));
           elements.newsKeywordInput.value = '';
+          appState.newsFeedPage = 1; // Reset pagination page to 1
           renderKeywords();
           renderLiveFeed(); // Update the live feed immediately to reflect the new keyword filter
           showToast(`Keyword "${val}" added!`);
@@ -2705,6 +2707,7 @@ function renderKeywords() {
       const updated = keywordsArray.filter(k => k !== keywordToRemove);
       kwInfo.set(updated);
       localStorage.setItem(kwInfo.key, JSON.stringify(updated));
+      appState.newsFeedPage = 1; // Reset pagination page to 1
       renderKeywords();
       renderLiveFeed(); // Update the live feed immediately to reflect the removed keyword filter
       showToast(`Keyword "${keywordToRemove}" removed.`);
@@ -2745,7 +2748,27 @@ function renderLiveFeed() {
     return;
   }
 
-  matchedItems.forEach(item => {
+  // PAGINATION LOGIC
+  const FEED_PAGE_SIZE = 12;
+  const totalItems = matchedItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / FEED_PAGE_SIZE));
+  
+  if (!appState.newsFeedPage) {
+    appState.newsFeedPage = 1;
+  }
+  
+  // Clamp page
+  appState.newsFeedPage = Math.max(1, Math.min(appState.newsFeedPage, totalPages));
+  
+  const startIdx = (appState.newsFeedPage - 1) * FEED_PAGE_SIZE;
+  const endIdx = startIdx + FEED_PAGE_SIZE;
+  const paginatedItems = matchedItems.slice(startIdx, endIdx);
+
+  // Render items wrapper
+  const listWrapper = document.createElement('div');
+  listWrapper.style.cssText = 'display:flex; flex-direction:column; gap:0.75rem; flex:1;';
+  
+  paginatedItems.forEach(item => {
     const card = document.createElement('div');
     card.className = `live-feed-card news-card-${item.category}`;
     
@@ -2825,8 +2848,59 @@ function renderLiveFeed() {
       }
     });
 
-    container.appendChild(card);
+    listWrapper.appendChild(card);
   });
+  
+  container.appendChild(listWrapper);
+
+  // Render pagination toolbar
+  if (totalPages > 1) {
+    const pagToolbar = document.createElement('div');
+    pagToolbar.className = 'news-pagination-toolbar';
+    pagToolbar.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0.25rem; border-top:1px solid var(--border-glass); margin-top:0.75rem; gap:1rem;';
+    
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'btn btn-outline btn-sm';
+    prevBtn.textContent = '← Prev';
+    prevBtn.style.padding = '0.3rem 0.65rem';
+    prevBtn.style.fontSize = '0.75rem';
+    if (appState.newsFeedPage === 1) {
+      prevBtn.disabled = true;
+      prevBtn.style.opacity = '0.5';
+      prevBtn.style.cursor = 'not-allowed';
+    }
+    prevBtn.addEventListener('click', () => {
+      appState.newsFeedPage--;
+      renderLiveFeed();
+      container.scrollTop = 0;
+    });
+
+    const infoSpan = document.createElement('span');
+    infoSpan.style.fontSize = '0.75rem';
+    infoSpan.style.color = 'var(--text-secondary)';
+    infoSpan.textContent = `Page ${appState.newsFeedPage} of ${totalPages} (${totalItems} total)`;
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-outline btn-sm';
+    nextBtn.textContent = 'Next →';
+    nextBtn.style.padding = '0.3rem 0.65rem';
+    nextBtn.style.fontSize = '0.75rem';
+    if (appState.newsFeedPage === totalPages) {
+      nextBtn.disabled = true;
+      nextBtn.style.opacity = '0.5';
+      nextBtn.style.cursor = 'not-allowed';
+    }
+    nextBtn.addEventListener('click', () => {
+      appState.newsFeedPage++;
+      renderLiveFeed();
+      container.scrollTop = 0;
+    });
+
+    pagToolbar.appendChild(prevBtn);
+    pagToolbar.appendChild(infoSpan);
+    pagToolbar.appendChild(nextBtn);
+    container.appendChild(pagToolbar);
+  }
 }
 
 function renderNewsTabsSwitcher() {
