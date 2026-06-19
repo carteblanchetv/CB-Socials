@@ -5615,6 +5615,30 @@ function init() {
     localStorage.setItem('cb_press_releases_keywords', JSON.stringify(appState.pressReleasesKeywords));
   }
 
+  // Guard against empty press releases feeds array
+  const defaultPressFeeds = [
+    'https://www.da.org.za/feed',
+    'https://news.google.com/rss/search?q=%22Economic+Freedom+Fighters%22+OR+source:EFF&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://www.anc1912.org.za/feed/',
+    'https://news.google.com/rss/search?q=%22uMkhonto+weSizwe%22+OR+%22MK+Party%22&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://news.google.com/rss/search?q=%22Inkatha+Freedom+Party%22+OR+source:IFP&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://news.google.com/rss/search?q=%22Patriotic+Alliance%22&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://www.actionsa.org.za/feed/',
+    'https://www.vfplus.org.za/feed',
+    'https://cosatu.org.za/feed/',
+    'https://news.google.com/rss/search?q=%22South+African+Federation+of+Trade+Unions%22+OR+SAFTU&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://tac.org.za/feed/',
+    'https://www.outa.co.za/feed',
+    'https://www.corruptionwatch.org.za/feed/',
+    'https://casac.org.za/feed/',
+    'https://section27.org.za/feed/',
+    'https://www.sanews.gov.za/rss.xml'
+  ];
+  if (!appState.pressReleasesFeeds || !Array.isArray(appState.pressReleasesFeeds) || appState.pressReleasesFeeds.length === 0) {
+    appState.pressReleasesFeeds = defaultPressFeeds;
+    localStorage.setItem('cb_press_releases_feeds', JSON.stringify(appState.pressReleasesFeeds));
+  }
+
   // Clean, normalize and remove duplicates from stored RSS feeds
   if (appState.rssFeeds && Array.isArray(appState.rssFeeds)) {
     appState.rssFeeds = Array.from(new Set(appState.rssFeeds.map(normalizeRssUrl)));
