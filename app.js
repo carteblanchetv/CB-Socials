@@ -338,6 +338,7 @@ let appState = {
   // News Monitor state
   currentWorkspace: loadStoredData('cb_current_workspace', 'calendar'), // 'calendar' or 'news'
   newsKeywords: loadStoredData('cb_news_keywords', ['eskom', 'corruption', 'load shedding', 'inflation', 'policy', 'delivery']),
+  globalNewsKeywords: loadStoredData('cb_global_news_keywords', ['united nations', 'climate change', 'election', 'global economy', 'protest', 'technology']),
   liveNewsFeed: loadStoredData('cb_live_news_feed', []),
   trackedNewsItems: loadStoredData('cb_tracked_news_items', [
     {
@@ -2276,14 +2277,20 @@ function initEvents() {
   if (elements.btnAddKeyword) {
     elements.btnAddKeyword.addEventListener('click', () => {
       const val = elements.newsKeywordInput.value.trim().toLowerCase();
-      if (val && !appState.newsKeywords.includes(val)) {
-        appState.newsKeywords.push(val);
-        localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
-        elements.newsKeywordInput.value = '';
-        renderKeywords();
-        renderLiveFeed(); // Update the live feed immediately to reflect the new keyword filter
-        showToast(`Keyword "${val}" added!`);
-        saveSettingsToCloud();
+      if (val) {
+        const isGlobal = appState.currentWorkspace === 'global-news';
+        const keywordsArray = isGlobal ? appState.globalNewsKeywords : appState.newsKeywords;
+        const storageKey = isGlobal ? 'cb_global_news_keywords' : 'cb_news_keywords';
+        
+        if (!keywordsArray.includes(val)) {
+          keywordsArray.push(val);
+          localStorage.setItem(storageKey, JSON.stringify(keywordsArray));
+          elements.newsKeywordInput.value = '';
+          renderKeywords();
+          renderLiveFeed(); // Update the live feed immediately to reflect the new keyword filter
+          showToast(`Keyword "${val}" added!`);
+          saveSettingsToCloud();
+        }
       }
     });
   }
@@ -2566,12 +2573,16 @@ function renderKeywords() {
   const container = elements.keywordPillsContainer;
   container.innerHTML = '';
   
-  if (appState.newsKeywords.length === 0) {
+  const isGlobal = appState.currentWorkspace === 'global-news';
+  const keywordsArray = isGlobal ? appState.globalNewsKeywords : appState.newsKeywords;
+  const storageKey = isGlobal ? 'cb_global_news_keywords' : 'cb_news_keywords';
+
+  if (keywordsArray.length === 0) {
     container.innerHTML = `<span style="font-size:0.75rem; color:var(--text-muted);">No keywords set. Add keywords to filter simulated news updates.</span>`;
     return;
   }
 
-  appState.newsKeywords.forEach(kw => {
+  keywordsArray.forEach(kw => {
     const pill = document.createElement('span');
     pill.className = 'keyword-pill';
     pill.innerHTML = `
@@ -2580,8 +2591,13 @@ function renderKeywords() {
     `;
     pill.querySelector('.btn-remove-keyword').addEventListener('click', (e) => {
       const keywordToRemove = e.target.dataset.keyword;
-      appState.newsKeywords = appState.newsKeywords.filter(k => k !== keywordToRemove);
-      localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
+      if (isGlobal) {
+        appState.globalNewsKeywords = appState.globalNewsKeywords.filter(k => k !== keywordToRemove);
+        localStorage.setItem(storageKey, JSON.stringify(appState.globalNewsKeywords));
+      } else {
+        appState.newsKeywords = appState.newsKeywords.filter(k => k !== keywordToRemove);
+        localStorage.setItem(storageKey, JSON.stringify(appState.newsKeywords));
+      }
       renderKeywords();
       renderLiveFeed(); // Update the live feed immediately to reflect the removed keyword filter
       showToast(`Keyword "${keywordToRemove}" removed.`);
@@ -2598,10 +2614,11 @@ function renderLiveFeed() {
 
   const isGlobal = appState.currentWorkspace === 'global-news';
   const feedsList = isGlobal ? (appState.globalNewsFeed || []) : (appState.liveNewsFeed || []);
+  const keywordsArray = isGlobal ? appState.globalNewsKeywords : appState.newsKeywords;
 
   const matchedItems = feedsList.filter(item => {
-    if (appState.newsKeywords.length === 0) return true; // Show all if no keywords are set
-    return appState.newsKeywords.some(kw => {
+    if (keywordsArray.length === 0) return true; // Show all if no keywords are set
+    return keywordsArray.some(kw => {
       const kwLower = kw.toLowerCase();
       return item.title.toLowerCase().includes(kwLower) || 
              item.summary.toLowerCase().includes(kwLower);
@@ -4091,11 +4108,11 @@ function setupRealtimeSettingsSubscription() {
           let changed = false;
 
           if (data.keywords && Array.isArray(data.keywords)) {
-            const match = appState.newsKeywords.length === data.keywords.length &&
-                          appState.newsKeywords.every((kw, idx) => kw === data.keywords[idx]);
+            const match = appState.globalNewsKeywords.length === data.keywords.length &&
+                          appState.globalNewsKeywords.every((kw, idx) => kw === data.keywords[idx]);
             if (!match) {
-              appState.newsKeywords = data.keywords;
-              localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
+              appState.globalNewsKeywords = data.keywords;
+              localStorage.setItem('cb_global_news_keywords', JSON.stringify(appState.globalNewsKeywords));
               renderKeywords();
               changed = true;
             }
@@ -4130,9 +4147,10 @@ function saveSettingsToCloud() {
     const isGlobal = appState.currentWorkspace === 'global-news';
     const docId = isGlobal ? 'global_news_monitor' : 'news_monitor';
     const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
+    const keywords = isGlobal ? appState.globalNewsKeywords : appState.newsKeywords;
 
     firestoreDb.collection('settings').doc(docId).set({
-      keywords: appState.newsKeywords,
+      keywords: keywords,
       feeds: feeds,
       updatedAt: new Date().toISOString()
     }).then(() => {
