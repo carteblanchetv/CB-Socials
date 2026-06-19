@@ -205,6 +205,9 @@ function initFirebase() {
   }
 }
 
+// Keep track of IDs in the process of being deleted on the Firestore backend
+const pendingDeletions = new Set();
+
 // Safe localStorage parsing helper
 function loadStoredData(key, fallback) {
   try {
@@ -4125,6 +4128,7 @@ function setupRealtimePostsSubscription() {
     .onSnapshot((snapshot) => {
       const updatedPosts = [];
       snapshot.forEach(doc => {
+        if (pendingDeletions.has(doc.id)) return; // Skip if currently deleting in backend
         const data = doc.data();
         updatedPosts.push({
           id: doc.id,
@@ -4213,11 +4217,15 @@ async function savePostsToCloud() {
 
 async function deletePostFromDb(postId) {
   if (!firestoreDb) return;
+  pendingDeletions.add(postId);
   try {
     await firestoreDb.collection('cbsocials_posts').doc(postId).delete();
     console.log('Post deleted from Firebase:', postId);
   } catch (err) {
     console.error('Error deleting post from Firebase:', err);
+  } finally {
+    // Keep it in pendingDeletions briefly after resolution to swallow any echo snapshots
+    setTimeout(() => pendingDeletions.delete(postId), 1000);
   }
 }
 
@@ -4232,6 +4240,7 @@ function setupRealtimeTrackedNewsSubscription() {
     .onSnapshot((snapshot) => {
       const updatedItems = [];
       snapshot.forEach(doc => {
+        if (pendingDeletions.has(doc.id)) return; // Skip if currently deleting in backend
         const data = doc.data();
         updatedItems.push({
           id: doc.id,
@@ -4284,11 +4293,14 @@ function saveTrackedNewsToCloud() {
 
 async function deleteTrackedNewsFromDb(itemId) {
   if (!firestoreDb) return;
+  pendingDeletions.add(itemId);
   try {
     await firestoreDb.collection('tracked_articles').doc(itemId).delete();
     console.log('Tracked article deleted from Firestore:', itemId);
   } catch (err) {
     console.error('Error deleting tracked article from Firestore:', err);
+  } finally {
+    setTimeout(() => pendingDeletions.delete(itemId), 1000);
   }
 }
 
@@ -4303,6 +4315,7 @@ function setupRealtimeCopyLibrarySubscription() {
     .onSnapshot((snapshot) => {
       const updatedLibrary = [];
       snapshot.forEach(doc => {
+        if (pendingDeletions.has(doc.id)) return; // Skip if currently deleting in backend
         const data = doc.data();
         updatedLibrary.push({
           id: doc.id,
@@ -4332,11 +4345,14 @@ function setupRealtimeCopyLibrarySubscription() {
 
 async function deleteCopyFromDb(copyId) {
   if (!firestoreDb) return;
+  pendingDeletions.add(copyId);
   try {
     await firestoreDb.collection('copy_library').doc(copyId).delete();
     console.log('Copy Library template deleted from Firebase:', copyId);
   } catch (err) {
     console.error('Error deleting copy template from Firebase:', err);
+  } finally {
+    setTimeout(() => pendingDeletions.delete(copyId), 1000);
   }
 }
 
@@ -5558,12 +5574,15 @@ async function initAuth() {
 
 async function deleteStoryFromDb(storyId) {
   if (!firestoreDb) return;
+  pendingDeletions.add(storyId);
   try {
     await firestoreDb.collection('stories').doc(storyId).delete();
     console.log('Story deleted from Firebase:', storyId);
   } catch (err) {
     console.error('Error deleting story from Firebase:', err);
     showToast('Failed to delete story from database.');
+  } finally {
+    setTimeout(() => pendingDeletions.delete(storyId), 1000);
   }
 }
 
@@ -5624,6 +5643,7 @@ function setupRealtimeSubscription() {
       const updatedStories = [];
       snapshot.forEach(doc => {
         const data = doc.data();
+        if (pendingDeletions.has(data.id) || pendingDeletions.has(doc.id)) return; // Skip if currently deleting in backend
         updatedStories.push({
           id: data.id,
           txDate: data.txDate ? normalizeDateString(data.txDate) : 'TBC',
