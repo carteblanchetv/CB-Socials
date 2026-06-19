@@ -2890,6 +2890,7 @@ textarea {
 
 /* Live updates list container and cards */
 .live-feed-card {
+  --source-color: var(--color-danger);
   background: var(--card-bg);
   border: 1px solid var(--border-glass);
   border-radius: 12px;
@@ -2912,7 +2913,7 @@ textarea {
   left: 0;
   width: 3px;
   height: 100%;
-  background: var(--color-danger);
+  background: var(--source-color, var(--color-danger));
 }
 .live-feed-card.news-card-updates::before { background: var(--color-bluesky); }
 .live-feed-card.news-card-delivery::before { background: var(--color-warning); }

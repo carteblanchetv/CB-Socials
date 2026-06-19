@@ -2720,6 +2720,29 @@ function renderKeywords() {
   });
 }
 
+function getSourceColor(sourceName) {
+  if (!sourceName) return 'var(--color-danger)';
+  const cleanName = sourceName.trim().toLowerCase();
+  const colors = [
+    '#3b82f6', // Blue
+    '#10b981', // Emerald Green
+    '#f59e0b', // Amber Orange
+    '#8b5cf6', // Violet
+    '#ec4899', // Pink
+    '#06b6d4', // Cyan
+    '#14b8a6', // Teal
+    '#f43f5e', // Rose
+    '#6366f1', // Indigo
+    '#0085ff'  // Bluesky
+  ];
+  let hash = 0;
+  for (let i = 0; i < cleanName.length; i++) {
+    hash = cleanName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+}
+
 function renderLiveFeed() {
   if (!elements.liveFeedContent) return;
   const container = elements.liveFeedContent;
@@ -2776,6 +2799,10 @@ function renderLiveFeed() {
     const ws = appState.currentWorkspace;
     card.className = ws === 'press-releases' ? `live-feed-card news-card-${item.category}` : 'live-feed-card';
     
+    // Set custom property for source-based color coding
+    const sColor = getSourceColor(item.source);
+    card.style.setProperty('--source-color', sColor);
+    
     let badgeHTML = '';
     
     if (ws === 'press-releases') {
@@ -2799,7 +2826,7 @@ function renderLiveFeed() {
       <div class="live-feed-card-header">
         <div style="display: flex; align-items: center; gap: 0.4rem;">
           ${badgeHTML}
-          <span>Source: <strong>${escapeHtml(item.source)}</strong></span>
+          <span>Source: <strong style="color: var(--source-color);">${escapeHtml(item.source)}</strong></span>
         </div>
         <span>${formatTimeAgo(new Date(item.timestamp))}</span>
       </div>
