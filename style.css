@@ -1,23 +1,23 @@
 :root {
-  /* Dark mode theme variables (default) */
-  --bg-app: #011420;
-  --bg-panel: rgba(5, 30, 48, 0.55);
-  --border-glass: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(255, 255, 255, 0.25);
-  --text-primary: #ffffff;
+  /* Dark mode theme variables (default) - Slate Charcoal Premium style */
+  --bg-app: #0b0c10;
+  --bg-panel: rgba(21, 23, 30, 0.75);
+  --border-glass: rgba(255, 255, 255, 0.05);
+  --border-focus: rgba(255, 255, 255, 0.15);
+  --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --shadow-main: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --card-bg: rgba(255, 255, 255, 0.03);
-  --card-hover-bg: rgba(255, 255, 255, 0.07);
-  --input-bg: rgba(0, 0, 0, 0.2);
-  --btn-secondary: rgba(255, 255, 255, 0.08);
-  --btn-secondary-hover: rgba(255, 255, 255, 0.15);
+  --text-muted: #64748b;
+  --shadow-main: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+  --card-bg: rgba(255, 255, 255, 0.015);
+  --card-hover-bg: rgba(255, 255, 255, 0.04);
+  --input-bg: rgba(0, 0, 0, 0.35);
+  --btn-secondary: rgba(255, 255, 255, 0.06);
+  --btn-secondary-hover: rgba(255, 255, 255, 0.12);
   
-  /* Primary Colors */
-  --primary: #0082c3;
-  --primary-hover: #38bdf8;
-  --primary-glow: rgba(0, 130, 195, 0.35);
+  /* Primary Colors - Default to Indigo */
+  --primary: #818cf8;
+  --primary-hover: #6366f1;
+  --primary-glow: rgba(129, 140, 248, 0.35);
   
   /* Platform Colors */
   --color-twitter: #000000;
@@ -36,24 +36,24 @@
 }
 
 [data-theme="light"] {
-  /* Light mode theme variables */
-  --bg-app: #f0f6fa;
-  --bg-panel: rgba(255, 255, 255, 0.7);
-  --border-glass: rgba(0, 0, 0, 0.08);
-  --border-focus: rgba(0, 0, 0, 0.15);
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
-  --shadow-main: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
-  --card-bg: rgba(0, 0, 0, 0.02);
-  --card-hover-bg: rgba(0, 0, 0, 0.05);
-  --input-bg: rgba(255, 255, 255, 0.7);
-  --btn-secondary: rgba(0, 0, 0, 0.05);
-  --btn-secondary-hover: rgba(0, 0, 0, 0.1);
+  /* Light mode theme variables - Soft Clean Slate style */
+  --bg-app: #f8fafc;
+  --bg-panel: rgba(255, 255, 255, 0.85);
+  --border-glass: rgba(15, 23, 42, 0.06);
+  --border-focus: rgba(15, 23, 42, 0.12);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --shadow-main: 0 12px 40px 0 rgba(15, 23, 42, 0.04);
+  --card-bg: rgba(15, 23, 42, 0.015);
+  --card-hover-bg: rgba(15, 23, 42, 0.035);
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --btn-secondary: rgba(15, 23, 42, 0.04);
+  --btn-secondary-hover: rgba(15, 23, 42, 0.08);
   
-  --primary: #0082c3;
-  --primary-hover: #38bdf8;
-  --primary-glow: rgba(0, 130, 195, 0.15);
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-glow: rgba(79, 70, 229, 0.15);
 }
 
 * {
@@ -3024,35 +3024,35 @@ body.body-workspace-news .bg-blue {
 
 /* Workspace & Theme Specific Accents */
 .body-workspace-news {
-  --primary: #C3DBC5;
-  --primary-hover: #aec3b0;
-  --primary-glow: rgba(195, 219, 197, 0.35);
+  --primary: #34d399;
+  --primary-hover: #10b981;
+  --primary-glow: rgba(52, 211, 153, 0.35);
 }
 .body-workspace-news[data-theme="light"] {
-  --primary: #B99A3C;
-  --primary-hover: #9c8030;
-  --primary-glow: rgba(185, 154, 60, 0.15);
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-glow: rgba(5, 150, 105, 0.15);
 }
 
 .body-workspace-global-news {
-  --primary: #DAA49A;
-  --primary-hover: #c99288;
-  --primary-glow: rgba(218, 164, 154, 0.35);
+  --primary: #fb7185;
+  --primary-hover: #f43f5e;
+  --primary-glow: rgba(251, 113, 133, 0.35);
 }
 .body-workspace-global-news[data-theme="light"] {
-  --primary: #C26B5B;
-  --primary-hover: #a9584a;
-  --primary-glow: rgba(194, 107, 91, 0.15);
+  --primary: #e11d48;
+  --primary-hover: #be123c;
+  --primary-glow: rgba(225, 29, 72, 0.15);
 }
 
 .body-workspace-calendar {
-  --primary: #7798AB;
-  --primary-hover: #5d7e91;
-  --primary-glow: rgba(119, 152, 171, 0.35);
+  --primary: #818cf8;
+  --primary-hover: #6366f1;
+  --primary-glow: rgba(129, 140, 248, 0.35);
 }
 .body-workspace-calendar[data-theme="light"] {
-  --primary: #5D8298;
-  --primary-hover: #4a6a7c;
-  --primary-glow: rgba(93, 130, 152, 0.15);
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-glow: rgba(79, 70, 229, 0.15);
 }
 
