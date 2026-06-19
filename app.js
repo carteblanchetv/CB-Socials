@@ -408,7 +408,10 @@ let appState = {
     'https://www.lemonde.fr/en/rss/une.xml',
     'https://www.bellingcat.com/feed/',
     'https://www.wired.com/feed/rss'
-  ])
+  ]),
+  pressReleasesKeywords: loadStoredData('cb_press_releases_keywords', ['press release', 'announcement', 'launch', 'partnership', 'acquisition']),
+  pressReleasesNewsFeed: loadStoredData('cb_press_releases_news_feed', []),
+  pressReleasesFeeds: loadStoredData('cb_press_releases_feeds', [])
 };
 
 // Sync copy version platforms from scheduled posts
@@ -744,6 +747,7 @@ const elements = {
   navBtnCalendar: document.getElementById('nav-btn-calendar'),
   navBtnNews: document.getElementById('nav-btn-news'),
   navBtnGlobalNews: document.getElementById('nav-btn-global-news'),
+  navBtnPressReleases: document.getElementById('nav-btn-press-releases'),
   newsMonitorGrid: document.getElementById('news-monitor-grid'),
   panelScheduler: document.getElementById('panel-scheduler'),
   dashboardGrid: document.querySelector('.dashboard-grid:not(.news-monitor-grid)'),
@@ -1824,29 +1828,36 @@ function initEvents() {
       elements.navBtnCalendar.classList.toggle('active', tab === 'calendar');
       elements.navBtnNews.classList.toggle('active', tab === 'news');
       elements.navBtnGlobalNews.classList.toggle('active', tab === 'global-news');
+      if (elements.navBtnPressReleases) {
+        elements.navBtnPressReleases.classList.toggle('active', tab === 'press-releases');
+      }
     }
 
     const liveFeedSubtitle = document.getElementById('live-feed-subtitle');
     const panelKeywordsTitle = document.querySelector('.panel-keywords .panel-title');
     const panelKeywordsSubtitle = document.querySelector('.panel-keywords .panel-subtitle');
 
+    // Remove all workspace classes
+    document.body.classList.remove('body-workspace-calendar', 'body-workspace-news', 'body-workspace-global-news', 'body-workspace-press-releases');
+
     if (tab === 'calendar') {
       document.body.classList.add('body-workspace-calendar');
-      document.body.classList.remove('body-workspace-news', 'body-workspace-global-news');
       if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'none';
       if (elements.panelScheduler) elements.panelScheduler.style.display = 'flex';
       if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'grid';
     } else {
-      const isGlobal = tab === 'global-news';
-      if (isGlobal) {
+      if (tab === 'global-news') {
         document.body.classList.add('body-workspace-global-news');
-        document.body.classList.remove('body-workspace-news', 'body-workspace-calendar');
         if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Global RSS headlines wire';
         if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Global Keyword Monitor';
         if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter global news updates';
+      } else if (tab === 'press-releases') {
+        document.body.classList.add('body-workspace-press-releases');
+        if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Press Releases wire';
+        if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Press Releases Keyword Monitor';
+        if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter press releases';
       } else {
         document.body.classList.add('body-workspace-news');
-        document.body.classList.remove('body-workspace-global-news', 'body-workspace-calendar');
         if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Local RSS headlines wire';
         if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Local Keyword Monitor';
         if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter local news updates';
@@ -1865,13 +1876,18 @@ function initEvents() {
   }
 
   // ── News Monitor Tab Navigation ────────────────────────
-  if (elements.navBtnCalendar && elements.navBtnNews && elements.navBtnGlobalNews) {
-    [elements.navBtnCalendar, elements.navBtnNews, elements.navBtnGlobalNews].forEach(btn => {
-      btn.addEventListener('click', () => {
-        switchWorkspace(btn.dataset.tab);
-      });
+  const workspaceButtons = [
+    elements.navBtnCalendar,
+    elements.navBtnNews,
+    elements.navBtnGlobalNews,
+    elements.navBtnPressReleases
+  ].filter(Boolean);
+
+  workspaceButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchWorkspace(btn.dataset.tab);
     });
-  }
+  });
 
   // Import DOCX button
   elements.btnImportDocx.addEventListener('click', () => elements.docxFileInput.click());
@@ -2383,12 +2399,16 @@ function initEvents() {
       // Attempt sequential proxy fetches using the timeout-backed PROXY_PROVIDERS chain
       for (let i = 0; i < PROXY_PROVIDERS.length; i++) {
         const provider = PROXY_PROVIDERS[i];
+        if (provider.name === 'rss2json') continue; // Skip rss2json since it outputs structured feed JSON, not raw web page HTML
         try {
           console.log(`[Scrape] Trying proxy (${provider.name}) to fetch: ${targetUrl}`);
-          htmlText = await provider.fetch(targetUrl);
-          success = true;
-          console.log(`[Scrape] Success via ${provider.name}`);
-          break;
+          const resObj = await provider.fetch(targetUrl);
+          if (resObj && resObj.content) {
+            htmlText = resObj.content;
+            success = true;
+            console.log(`[Scrape] Success via ${provider.name}`);
+            break;
+          }
         } catch (e) {
           console.warn(`[Scrape] ${provider.name} failed for ${targetUrl}: ${e.message}`);
         }
@@ -2512,16 +2532,13 @@ function initEvents() {
       e.preventDefault();
       const rawUrl = elements.rssFeedUrl.value.trim();
       const url = normalizeRssUrl(rawUrl);
-      const isGlobal = appState.currentWorkspace === 'global-news';
-      const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
+      const feedsInfo = getCurrentWorkspaceFeedsInfo();
+      const feeds = feedsInfo.array;
 
       if (url && !feeds.includes(url)) {
         feeds.push(url);
-        if (isGlobal) {
-          localStorage.setItem('cb_global_rss_feeds', JSON.stringify(appState.globalRssFeeds));
-        } else {
-          localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
-        }
+        feedsInfo.set(feeds);
+        localStorage.setItem(feedsInfo.key, JSON.stringify(feeds));
         elements.rssFeedUrl.value = '';
         renderRssFeedsList();
         fetchLiveRSSFeeds();
@@ -2567,15 +2584,84 @@ function closeCopyItemModal() {
   elements.copyItemModal.style.display = 'none';
 }
 
+// Helper functions to retrieve active workspace state info
+function getCurrentWorkspaceKeywordsInfo() {
+  const ws = appState.currentWorkspace;
+  if (ws === 'global-news') {
+    return {
+      array: appState.globalNewsKeywords,
+      key: 'cb_global_news_keywords',
+      set: (val) => appState.globalNewsKeywords = val
+    };
+  } else if (ws === 'press-releases') {
+    return {
+      array: appState.pressReleasesKeywords,
+      key: 'cb_press_releases_keywords',
+      set: (val) => appState.pressReleasesKeywords = val
+    };
+  } else {
+    return {
+      array: appState.newsKeywords,
+      key: 'cb_news_keywords',
+      set: (val) => appState.newsKeywords = val
+    };
+  }
+}
+
+function getCurrentWorkspaceFeedsInfo() {
+  const ws = appState.currentWorkspace;
+  if (ws === 'global-news') {
+    return {
+      array: appState.globalRssFeeds,
+      key: 'cb_global_rss_feeds',
+      set: (val) => appState.globalRssFeeds = val
+    };
+  } else if (ws === 'press-releases') {
+    return {
+      array: appState.pressReleasesFeeds,
+      key: 'cb_press_releases_feeds',
+      set: (val) => appState.pressReleasesFeeds = val
+    };
+  } else {
+    return {
+      array: appState.rssFeeds,
+      key: 'cb_rss_feeds',
+      set: (val) => appState.rssFeeds = val
+    };
+  }
+}
+
+function getCurrentWorkspaceLiveFeedInfo() {
+  const ws = appState.currentWorkspace;
+  if (ws === 'global-news') {
+    return {
+      array: appState.globalNewsFeed || [],
+      set: (val) => appState.globalNewsFeed = val,
+      key: 'cb_global_news_feed'
+    };
+  } else if (ws === 'press-releases') {
+    return {
+      array: appState.pressReleasesNewsFeed || [],
+      set: (val) => appState.pressReleasesNewsFeed = val,
+      key: 'cb_press_releases_news_feed'
+    };
+  } else {
+    return {
+      array: appState.liveNewsFeed || [],
+      set: (val) => appState.liveNewsFeed = val,
+      key: 'cb_live_news_feed'
+    };
+  }
+}
+
 // ── News Monitor Rendering and Feed Simulation Helpers ─────────────────────────
 function renderKeywords() {
   if (!elements.keywordPillsContainer) return;
   const container = elements.keywordPillsContainer;
   container.innerHTML = '';
   
-  const isGlobal = appState.currentWorkspace === 'global-news';
-  const keywordsArray = isGlobal ? appState.globalNewsKeywords : appState.newsKeywords;
-  const storageKey = isGlobal ? 'cb_global_news_keywords' : 'cb_news_keywords';
+  const kwInfo = getCurrentWorkspaceKeywordsInfo();
+  const keywordsArray = kwInfo.array;
 
   if (keywordsArray.length === 0) {
     container.innerHTML = `<span style="font-size:0.75rem; color:var(--text-muted);">No keywords set. Add keywords to filter simulated news updates.</span>`;
@@ -2591,13 +2677,9 @@ function renderKeywords() {
     `;
     pill.querySelector('.btn-remove-keyword').addEventListener('click', (e) => {
       const keywordToRemove = e.target.dataset.keyword;
-      if (isGlobal) {
-        appState.globalNewsKeywords = appState.globalNewsKeywords.filter(k => k !== keywordToRemove);
-        localStorage.setItem(storageKey, JSON.stringify(appState.globalNewsKeywords));
-      } else {
-        appState.newsKeywords = appState.newsKeywords.filter(k => k !== keywordToRemove);
-        localStorage.setItem(storageKey, JSON.stringify(appState.newsKeywords));
-      }
+      const updated = keywordsArray.filter(k => k !== keywordToRemove);
+      kwInfo.set(updated);
+      localStorage.setItem(kwInfo.key, JSON.stringify(updated));
       renderKeywords();
       renderLiveFeed(); // Update the live feed immediately to reflect the removed keyword filter
       showToast(`Keyword "${keywordToRemove}" removed.`);
@@ -2612,16 +2694,15 @@ function renderLiveFeed() {
   const container = elements.liveFeedContent;
   container.innerHTML = '';
 
-  const isGlobal = appState.currentWorkspace === 'global-news';
-  const feedsList = isGlobal ? (appState.globalNewsFeed || []) : (appState.liveNewsFeed || []);
-  const keywordsArray = isGlobal ? appState.globalNewsKeywords : appState.newsKeywords;
+  const feedsList = getCurrentWorkspaceLiveFeedInfo().array;
+  const keywordsArray = getCurrentWorkspaceKeywordsInfo().array;
 
   const matchedItems = feedsList.filter(item => {
     if (keywordsArray.length === 0) return true; // Show all if no keywords are set
     return keywordsArray.some(kw => {
       const kwLower = kw.toLowerCase();
       return item.title.toLowerCase().includes(kwLower) || 
-             item.summary.toLowerCase().includes(kwLower);
+             (item.summary && item.summary.toLowerCase().includes(kwLower));
     });
   });
 
@@ -2847,8 +2928,8 @@ function renderRssFeedsList() {
   if (!container) return;
   container.innerHTML = '';
 
-  const isGlobal = appState.currentWorkspace === 'global-news';
-  const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
+  const feedsInfo = getCurrentWorkspaceFeedsInfo();
+  const feeds = feedsInfo.array;
 
   if (feeds.length === 0) {
     container.innerHTML = `<div style="font-size:0.75rem;color:var(--text-muted);text-align:center;padding:1rem 0;">No feeds added yet.</div>`;
@@ -2876,11 +2957,8 @@ function renderRssFeedsList() {
     row.querySelector('.btn-rss-delete').addEventListener('click', (e) => {
       const index = parseInt(e.target.dataset.index, 10);
       feeds.splice(index, 1);
-      if (isGlobal) {
-        localStorage.setItem('cb_global_rss_feeds', JSON.stringify(appState.globalRssFeeds));
-      } else {
-        localStorage.setItem('cb_rss_feeds', JSON.stringify(appState.rssFeeds));
-      }
+      feedsInfo.set(feeds);
+      localStorage.setItem(feedsInfo.key, JSON.stringify(feeds));
       renderRssFeedsList();
       fetchLiveRSSFeeds();
       showToast('RSS Feed removed.');
@@ -3038,12 +3116,12 @@ function setSucceededProxyIndex(feedUrl, index) {
 async function fetchLiveRSSFeeds() {
   if (appState.newsFeedSource !== 'live-rss') return;
 
-  const isGlobal = appState.currentWorkspace === 'global-news';
-  const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
+  const feedsInfo = getCurrentWorkspaceFeedsInfo();
+  const feeds = feedsInfo.array;
+  const feedStateInfo = getCurrentWorkspaceLiveFeedInfo();
 
   if (feeds.length === 0) {
-    if (isGlobal) appState.globalNewsFeed = [];
-    else appState.liveNewsFeed = [];
+    feedStateInfo.set([]);
     renderLiveFeed();
     return;
   }
@@ -3177,7 +3255,7 @@ async function fetchLiveRSSFeeds() {
   await Promise.all(fetchPromises);
 
   // Merge new items with existing items, ensuring uniqueness by link or title
-  const existingItems = isGlobal ? (appState.globalNewsFeed || []) : (appState.liveNewsFeed || []);
+  const existingItems = feedStateInfo.array;
   const mergedItems = [...allItems];
   
   existingItems.forEach(existing => {
@@ -3193,15 +3271,15 @@ async function fetchLiveRSSFeeds() {
   // Sort by date descending
   mergedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   
-  if (isGlobal) {
-    appState.globalNewsFeed = mergedItems.slice(0, 150);
-    localStorage.setItem('cb_global_news_feed', JSON.stringify(appState.globalNewsFeed));
-  } else {
-    appState.liveNewsFeed = mergedItems.slice(0, 150);
-    localStorage.setItem('cb_live_news_feed', JSON.stringify(appState.liveNewsFeed));
-  }
+  const finalMerged = mergedItems.slice(0, 150);
+  feedStateInfo.set(finalMerged);
+  localStorage.setItem(feedStateInfo.key, JSON.stringify(finalMerged));
   
-  if (appState.currentWorkspace === 'news' || appState.currentWorkspace === 'global-news') {
+  if (
+    appState.currentWorkspace === 'news' || 
+    appState.currentWorkspace === 'global-news' || 
+    appState.currentWorkspace === 'press-releases'
+  ) {
     renderLiveFeed();
   }
 }
@@ -3262,9 +3340,9 @@ const SIMULATION_TEMPLATES = [
 function initNewsWireLoop() {
   if (newsSimulationInterval) clearInterval(newsSimulationInterval);
 
-  // Generate 2 seed articles instantly on start if feed is empty and source is simulated
+  // Generate seed articles instantly on start if feed is empty and source is simulated
   if (appState.newsFeedSource === 'simulated' && appState.liveNewsFeed.length === 0) {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 15; i++) {
       const template = SIMULATION_TEMPLATES[Math.floor(Math.random() * SIMULATION_TEMPLATES.length)];
       appState.liveNewsFeed.unshift({
         id: `sim-${Date.now()}-${i}`,
@@ -3286,8 +3364,8 @@ function initNewsWireLoop() {
         timestamp: new Date().toISOString()
       });
 
-      // Cap at 25 simulated items
-      if (appState.liveNewsFeed.length > 25) {
+      // Cap at 60 simulated items
+      if (appState.liveNewsFeed.length > 60) {
         appState.liveNewsFeed.pop();
       }
 
@@ -4051,6 +4129,7 @@ async function deleteCopyFromDb(copyId) {
 // ── Cloud Firestore Settings Sync (Keywords & Feeds) ──────────────────────────────────
 let settingsRealtimeListener = null;
 let globalSettingsRealtimeListener = null;
+let pressReleasesSettingsRealtimeListener = null;
 
 function setupRealtimeSettingsSubscription() {
   if (!firestoreDb) return;
@@ -4140,21 +4219,74 @@ function setupRealtimeSettingsSubscription() {
         console.error('Error fetching Global settings from Firestore:', err);
       });
   }
+
+  if (!pressReleasesSettingsRealtimeListener) {
+    pressReleasesSettingsRealtimeListener = firestoreDb
+      .collection('settings')
+      .doc('press_releases_monitor')
+      .onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          let changed = false;
+
+          if (data.keywords && Array.isArray(data.keywords)) {
+            const match = appState.pressReleasesKeywords.length === data.keywords.length &&
+                          appState.pressReleasesKeywords.every((kw, idx) => kw === data.keywords[idx]);
+            if (!match) {
+              appState.pressReleasesKeywords = data.keywords;
+              localStorage.setItem('cb_press_releases_keywords', JSON.stringify(appState.pressReleasesKeywords));
+              renderKeywords();
+              changed = true;
+            }
+          }
+
+          if (data.feeds && Array.isArray(data.feeds)) {
+            const normalizedFeeds = Array.from(new Set(data.feeds.map(normalizeRssUrl)));
+            const match = appState.pressReleasesFeeds.length === normalizedFeeds.length &&
+                          appState.pressReleasesFeeds.every((f, idx) => f === normalizedFeeds[idx]);
+            if (!match) {
+              appState.pressReleasesFeeds = normalizedFeeds;
+              localStorage.setItem('cb_press_releases_feeds', JSON.stringify(appState.pressReleasesFeeds));
+              if (appState.currentWorkspace === 'press-releases') {
+                renderRssFeedsList();
+                changed = true;
+              }
+            }
+          }
+
+          if (changed && appState.currentWorkspace === 'press-releases') {
+            fetchLiveRSSFeeds();
+          }
+        }
+      }, (err) => {
+        console.error('Error fetching Press Releases settings from Firestore:', err);
+      });
+  }
 }
 
 function saveSettingsToCloud() {
   if (firebaseAuth && firestoreDb && firebaseAuth.currentUser) {
-    const isGlobal = appState.currentWorkspace === 'global-news';
-    const docId = isGlobal ? 'global_news_monitor' : 'news_monitor';
-    const feeds = isGlobal ? appState.globalRssFeeds : appState.rssFeeds;
-    const keywords = isGlobal ? appState.globalNewsKeywords : appState.newsKeywords;
+    const ws = appState.currentWorkspace;
+    let docId = 'news_monitor';
+    let feeds = appState.rssFeeds;
+    let keywords = appState.newsKeywords;
+
+    if (ws === 'global-news') {
+      docId = 'global_news_monitor';
+      feeds = appState.globalRssFeeds;
+      keywords = appState.globalNewsKeywords;
+    } else if (ws === 'press-releases') {
+      docId = 'press_releases_monitor';
+      feeds = appState.pressReleasesFeeds;
+      keywords = appState.pressReleasesKeywords;
+    }
 
     firestoreDb.collection('settings').doc(docId).set({
       keywords: keywords,
       feeds: feeds,
       updatedAt: new Date().toISOString()
     }).then(() => {
-      console.log(`${isGlobal ? 'Global' : 'Local'} settings successfully saved to Firestore.`);
+      console.log(`${ws} settings successfully saved to Firestore.`);
     }).catch(e => {
       console.error('Error saving settings to Firestore:', e);
     });

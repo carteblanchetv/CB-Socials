@@ -3015,6 +3015,17 @@ textarea {
   --primary-glow: rgba(225, 29, 72, 0.15);
 }
 
+.body-workspace-press-releases {
+  --primary: #fbbf24;
+  --primary-hover: #f59e0b;
+  --primary-glow: rgba(251, 191, 36, 0.35);
+}
+.body-workspace-press-releases[data-theme="light"] {
+  --primary: #d97706;
+  --primary-hover: #b45309;
+  --primary-glow: rgba(217, 119, 6, 0.15);
+}
+
 .body-workspace-calendar {
   --primary: #818cf8;
   --primary-hover: #6366f1;
