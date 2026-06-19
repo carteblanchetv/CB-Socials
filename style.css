@@ -2918,6 +2918,9 @@ textarea {
 .live-feed-card.news-card-delivery::before { background: var(--color-warning); }
 .live-feed-card.news-card-consumer::before { background: var(--color-success); }
 .live-feed-card.news-card-policy::before { background: #a855f7; }
+.live-feed-card.news-card-political::before { background: #3b82f6; }
+.live-feed-card.news-card-government::before { background: #f59e0b; }
+.live-feed-card.news-card-npo-ngo::before { background: #10b981; }
 
 .live-feed-card-header {
   display: flex;
@@ -2979,6 +2982,9 @@ textarea {
 .badge-cat-delivery { background: var(--color-warning); }
 .badge-cat-consumer { background: var(--color-success); }
 .badge-cat-policy { background: #a855f7; }
+.badge-cat-political { background: #3b82f6; }
+.badge-cat-government { background: #f59e0b; }
+.badge-cat-npo-ngo { background: #10b981; }
 
 /* Spinning animation for fetching RSS feeds */
 .icon-refresh {

@@ -210,8 +210,13 @@ function loadStoredData(key, fallback) {
   try {
     const stored = localStorage.getItem(key);
     if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed !== null) return parsed;
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed !== null) return parsed;
+      } catch (jsonErr) {
+        // For backwards compatibility where simple strings were saved without JSON.stringify
+        return stored;
+      }
     }
   } catch (e) {
     console.error(`Error parsing stored data for key "${key}":`, e);
@@ -411,7 +416,24 @@ let appState = {
   ]),
   pressReleasesKeywords: loadStoredData('cb_press_releases_keywords', ['press release', 'announcement', 'launch', 'partnership', 'acquisition']),
   pressReleasesNewsFeed: loadStoredData('cb_press_releases_news_feed', []),
-  pressReleasesFeeds: loadStoredData('cb_press_releases_feeds', [])
+  pressReleasesFeeds: loadStoredData('cb_press_releases_feeds', [
+    'https://www.da.org.za/feed',
+    'https://news.google.com/rss/search?q=%22Economic+Freedom+Fighters%22+OR+source:EFF&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://www.anc1912.org.za/feed/',
+    'https://news.google.com/rss/search?q=%22uMkhonto+weSizwe%22+OR+%22MK+Party%22&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://news.google.com/rss/search?q=%22Inkatha+Freedom+Party%22+OR+source:IFP&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://news.google.com/rss/search?q=%22Patriotic+Alliance%22&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://www.actionsa.org.za/feed/',
+    'https://www.vfplus.org.za/feed',
+    'https://cosatu.org.za/feed/',
+    'https://news.google.com/rss/search?q=%22South+African+Federation+of+Trade+Unions%22+OR+SAFTU&hl=en-ZA&gl=ZA&ceid=ZA:en',
+    'https://tac.org.za/feed/',
+    'https://www.outa.co.za/feed',
+    'https://www.corruptionwatch.org.za/feed/',
+    'https://casac.org.za/feed/',
+    'https://section27.org.za/feed/',
+    'https://www.sanews.gov.za/rss.xml'
+  ])
 };
 
 // Sync copy version platforms from scheduled posts
@@ -1466,6 +1488,63 @@ function showToast(message) {
   }, 2500);
 }
 
+// Function to switch between workspaces (Calendar vs Local News vs Global News)
+function switchWorkspace(tab) {
+  appState.currentWorkspace = tab;
+  localStorage.setItem('cb_current_workspace', tab);
+
+  if (elements.navBtnCalendar && elements.navBtnNews && elements.navBtnGlobalNews) {
+    elements.navBtnCalendar.classList.toggle('active', tab === 'calendar');
+    elements.navBtnNews.classList.toggle('active', tab === 'news');
+    elements.navBtnGlobalNews.classList.toggle('active', tab === 'global-news');
+    if (elements.navBtnPressReleases) {
+      elements.navBtnPressReleases.classList.toggle('active', tab === 'press-releases');
+    }
+  }
+
+  const liveFeedSubtitle = document.getElementById('live-feed-subtitle');
+  const panelKeywordsTitle = document.querySelector('.panel-keywords .panel-title');
+  const panelKeywordsSubtitle = document.querySelector('.panel-keywords .panel-subtitle');
+
+  // Remove all workspace classes
+  document.body.classList.remove('body-workspace-calendar', 'body-workspace-news', 'body-workspace-global-news', 'body-workspace-press-releases');
+
+  if (tab === 'calendar') {
+    document.body.classList.add('body-workspace-calendar');
+    if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'none';
+    if (elements.panelScheduler) elements.panelScheduler.style.display = 'flex';
+    if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'grid';
+  } else {
+    if (tab === 'global-news') {
+      document.body.classList.add('body-workspace-global-news');
+      if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Global RSS headlines wire';
+      if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Global Keyword Monitor';
+      if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter global news updates';
+    } else if (tab === 'press-releases') {
+      document.body.classList.add('body-workspace-press-releases');
+      if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Press Releases wire';
+      if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Press Releases Keyword Monitor';
+      if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter press releases';
+    } else {
+      document.body.classList.add('body-workspace-news');
+      if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Local RSS headlines wire';
+      if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Local Keyword Monitor';
+      if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter local news updates';
+    }
+
+    if (elements.panelScheduler) elements.panelScheduler.style.display = 'none';
+    if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'none';
+    if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'grid';
+    
+    renderKeywords();
+    renderNewsTabsSwitcher();
+    renderRssFeedsList();
+    renderLiveFeed();
+    renderTrackedNews();
+    fetchLiveRSSFeeds();
+  }
+}
+
 // 8. Event Listeners Init
 function initEvents() {
   // Theme Toggle
@@ -1818,62 +1897,6 @@ function initEvents() {
 
   // Add Story button
   elements.btnAddStory.addEventListener('click', () => openStoryModal());
-
-  // Function to switch between workspaces (Calendar vs Local News vs Global News)
-  function switchWorkspace(tab) {
-    appState.currentWorkspace = tab;
-    localStorage.setItem('cb_current_workspace', tab);
-
-    if (elements.navBtnCalendar && elements.navBtnNews && elements.navBtnGlobalNews) {
-      elements.navBtnCalendar.classList.toggle('active', tab === 'calendar');
-      elements.navBtnNews.classList.toggle('active', tab === 'news');
-      elements.navBtnGlobalNews.classList.toggle('active', tab === 'global-news');
-      if (elements.navBtnPressReleases) {
-        elements.navBtnPressReleases.classList.toggle('active', tab === 'press-releases');
-      }
-    }
-
-    const liveFeedSubtitle = document.getElementById('live-feed-subtitle');
-    const panelKeywordsTitle = document.querySelector('.panel-keywords .panel-title');
-    const panelKeywordsSubtitle = document.querySelector('.panel-keywords .panel-subtitle');
-
-    // Remove all workspace classes
-    document.body.classList.remove('body-workspace-calendar', 'body-workspace-news', 'body-workspace-global-news', 'body-workspace-press-releases');
-
-    if (tab === 'calendar') {
-      document.body.classList.add('body-workspace-calendar');
-      if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'none';
-      if (elements.panelScheduler) elements.panelScheduler.style.display = 'flex';
-      if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'grid';
-    } else {
-      if (tab === 'global-news') {
-        document.body.classList.add('body-workspace-global-news');
-        if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Global RSS headlines wire';
-        if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Global Keyword Monitor';
-        if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter global news updates';
-      } else if (tab === 'press-releases') {
-        document.body.classList.add('body-workspace-press-releases');
-        if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Press Releases wire';
-        if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Press Releases Keyword Monitor';
-        if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter press releases';
-      } else {
-        document.body.classList.add('body-workspace-news');
-        if (liveFeedSubtitle) liveFeedSubtitle.textContent = 'Live Local RSS headlines wire';
-        if (panelKeywordsTitle) panelKeywordsTitle.textContent = 'Local Keyword Monitor';
-        if (panelKeywordsSubtitle) panelKeywordsSubtitle.textContent = 'Filter local news updates';
-      }
-
-      if (elements.panelScheduler) elements.panelScheduler.style.display = 'none';
-      if (elements.dashboardGrid) elements.dashboardGrid.style.display = 'none';
-      if (elements.newsMonitorGrid) elements.newsMonitorGrid.style.display = 'grid';
-      
-      renderKeywords();
-      renderRssFeedsList();
-      renderLiveFeed();
-      renderTrackedNews();
-      fetchLiveRSSFeeds();
-    }
-  }
 
   // ── News Monitor Tab Navigation ────────────────────────
   const workspaceButtons = [
@@ -2294,9 +2317,9 @@ function initEvents() {
     elements.btnAddKeyword.addEventListener('click', () => {
       const val = elements.newsKeywordInput.value.trim().toLowerCase();
       if (val) {
-        const isGlobal = appState.currentWorkspace === 'global-news';
-        const keywordsArray = isGlobal ? appState.globalNewsKeywords : appState.newsKeywords;
-        const storageKey = isGlobal ? 'cb_global_news_keywords' : 'cb_news_keywords';
+        const kwInfo = getCurrentWorkspaceKeywordsInfo();
+        const keywordsArray = kwInfo.array;
+        const storageKey = kwInfo.key;
         
         if (!keywordsArray.includes(val)) {
           keywordsArray.push(val);
@@ -2489,14 +2512,7 @@ function initEvents() {
   }
 
   // Category filter tabs switching
-  elements.newsTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      elements.newsTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      appState.activeNewsCategoryFilter = tab.dataset.categoryFilter;
-      renderTrackedNews();
-    });
-  });
+  renderNewsTabsSwitcher();
 
   // RSS Feed triggers
   if (elements.btnFetchFeed) {
@@ -2588,18 +2604,27 @@ function closeCopyItemModal() {
 function getCurrentWorkspaceKeywordsInfo() {
   const ws = appState.currentWorkspace;
   if (ws === 'global-news') {
+    if (!Array.isArray(appState.globalNewsKeywords)) {
+      appState.globalNewsKeywords = [];
+    }
     return {
       array: appState.globalNewsKeywords,
       key: 'cb_global_news_keywords',
       set: (val) => appState.globalNewsKeywords = val
     };
   } else if (ws === 'press-releases') {
+    if (!Array.isArray(appState.pressReleasesKeywords)) {
+      appState.pressReleasesKeywords = [];
+    }
     return {
       array: appState.pressReleasesKeywords,
       key: 'cb_press_releases_keywords',
       set: (val) => appState.pressReleasesKeywords = val
     };
   } else {
+    if (!Array.isArray(appState.newsKeywords)) {
+      appState.newsKeywords = [];
+    }
     return {
       array: appState.newsKeywords,
       key: 'cb_news_keywords',
@@ -2724,11 +2749,20 @@ function renderLiveFeed() {
     const card = document.createElement('div');
     card.className = `live-feed-card news-card-${item.category}`;
     
-    let categoryLabel = 'Breaking News';
-    if (item.category === 'updates') categoryLabel = 'Updates';
-    else if (item.category === 'delivery') categoryLabel = 'Service Delivery';
-    else if (item.category === 'consumer') categoryLabel = 'Consumer Issues';
-    else if (item.category === 'policy') categoryLabel = 'Policy News';
+    let categoryLabel = 'Press Release';
+    const ws = appState.currentWorkspace;
+    if (ws === 'press-releases') {
+      if (item.category === 'political') categoryLabel = 'POLITICAL';
+      else if (item.category === 'government') categoryLabel = 'GOVERNMENT';
+      else if (item.category === 'npo-ngo') categoryLabel = 'NPO/NGO';
+      else categoryLabel = (item.category || 'Press Release').toUpperCase();
+    } else {
+      if (item.category === 'breaking') categoryLabel = 'Breaking News';
+      else if (item.category === 'updates') categoryLabel = 'Updates';
+      else if (item.category === 'delivery') categoryLabel = 'Service Delivery';
+      else if (item.category === 'consumer') categoryLabel = 'Consumer Issues';
+      else if (item.category === 'policy') categoryLabel = 'Policy News';
+    }
 
     const isIol = (item.source && item.source.toLowerCase().includes('iol')) || (item.link && item.link.toLowerCase().includes('iol.co.za'));
     const isTimesLive = (item.source && item.source.toLowerCase().includes('timeslive')) || (item.link && item.link.toLowerCase().includes('timeslive.co.za'));
@@ -2779,6 +2813,44 @@ function renderLiveFeed() {
   });
 }
 
+function renderNewsTabsSwitcher() {
+  const switcher = document.getElementById('news-hub-tab-switcher');
+  if (!switcher) return;
+
+  const ws = appState.currentWorkspace;
+  if (ws === 'press-releases') {
+    switcher.innerHTML = `
+      <button class="hub-tab active" data-category-filter="all">All</button>
+      <button class="hub-tab" data-category-filter="political">Political</button>
+      <button class="hub-tab" data-category-filter="government">Government</button>
+      <button class="hub-tab" data-category-filter="npo-ngo">NPO/NGO</button>
+    `;
+  } else {
+    switcher.innerHTML = `
+      <button class="hub-tab active" data-category-filter="all">All</button>
+      <button class="hub-tab" data-category-filter="breaking">Breaking</button>
+      <button class="hub-tab" data-category-filter="updates">Updates</button>
+      <button class="hub-tab" data-category-filter="delivery">Service Delivery</button>
+      <button class="hub-tab" data-category-filter="consumer">Consumer</button>
+      <button class="hub-tab" data-category-filter="policy">Policy</button>
+    `;
+  }
+
+  // Set initial filter to all
+  appState.activeNewsCategoryFilter = 'all';
+
+  // Attach click listeners
+  const tabs = switcher.querySelectorAll('button');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      appState.activeNewsCategoryFilter = tab.dataset.categoryFilter;
+      renderTrackedNews();
+    });
+  });
+}
+
 function renderTrackedNews() {
   if (!elements.newsCategoriesList) return;
   const container = elements.newsCategoriesList;
@@ -2810,10 +2882,20 @@ function renderTrackedNews() {
     
     let badgeClass = 'badge-cat-breaking';
     let categoryLabel = 'Breaking News';
-    if (item.category === 'updates') { badgeClass = 'badge-cat-updates'; categoryLabel = 'Updates'; }
-    else if (item.category === 'delivery') { badgeClass = 'badge-cat-delivery'; categoryLabel = 'Service Delivery'; }
-    else if (item.category === 'consumer') { badgeClass = 'badge-cat-consumer'; categoryLabel = 'Consumer Issues'; }
-    else if (item.category === 'policy') { badgeClass = 'badge-cat-policy'; categoryLabel = 'Policy News'; }
+    const ws = appState.currentWorkspace;
+
+    if (ws === 'press-releases') {
+      if (item.category === 'political') { badgeClass = 'badge-cat-political'; categoryLabel = 'POLITICAL'; }
+      else if (item.category === 'government') { badgeClass = 'badge-cat-government'; categoryLabel = 'GOVERNMENT'; }
+      else if (item.category === 'npo-ngo') { badgeClass = 'badge-cat-npo-ngo'; categoryLabel = 'NPO/NGO'; }
+      else { badgeClass = 'badge-cat-npo-ngo'; categoryLabel = (item.category || 'Press Release').toUpperCase(); }
+    } else {
+      if (item.category === 'breaking') { badgeClass = 'badge-cat-breaking'; categoryLabel = 'Breaking News'; }
+      else if (item.category === 'updates') { badgeClass = 'badge-cat-updates'; categoryLabel = 'Updates'; }
+      else if (item.category === 'delivery') { badgeClass = 'badge-cat-delivery'; categoryLabel = 'Service Delivery'; }
+      else if (item.category === 'consumer') { badgeClass = 'badge-cat-consumer'; categoryLabel = 'Consumer Issues'; }
+      else if (item.category === 'policy') { badgeClass = 'badge-cat-policy'; categoryLabel = 'Policy News'; }
+    }
 
     card.innerHTML = `
       <div class="news-tracker-header">
@@ -2863,7 +2945,27 @@ function renderTrackedNews() {
 function openNewsModal(id = null) {
   elements.newsFormId.value = '';
   elements.newsFormTitle.value = '';
-  elements.newsFormCategory.value = 'breaking';
+  
+  const ws = appState.currentWorkspace;
+  const select = elements.newsFormCategory;
+  if (ws === 'press-releases') {
+    select.innerHTML = `
+      <option value="political">POLITICAL</option>
+      <option value="government">GOVERNMENT</option>
+      <option value="npo-ngo">NPO/NGO</option>
+    `;
+    select.value = 'political';
+  } else {
+    select.innerHTML = `
+      <option value="breaking">Breaking News</option>
+      <option value="updates">Updates</option>
+      <option value="delivery">Service Delivery Issues</option>
+      <option value="consumer">Consumer Issues</option>
+      <option value="policy">Policy News</option>
+    `;
+    select.value = 'breaking';
+  }
+  
   elements.newsFormSource.value = '';
   elements.newsFormSummary.value = '';
 
@@ -3224,17 +3326,53 @@ async function fetchLiveRSSFeeds() {
         // limit to 30 articles per feed
         if (idx >= 30) return;
 
-        // Infer Category based on Title keywords
+        // Infer Category based on Title keywords or Workspace type
         let category = 'updates';
-        const titleL = pItem.title.toLowerCase();
-        if (titleL.includes('break') || titleL.includes('kill') || titleL.includes('warn') || titleL.includes('arrest')) {
-          category = 'breaking';
-        } else if (titleL.includes('power') || titleL.includes('water') || titleL.includes('eskom') || titleL.includes('municip') || titleL.includes('load')) {
-          category = 'delivery';
-        } else if (titleL.includes('price') || titleL.includes('inflation') || titleL.includes('scam') || titleL.includes('bank') || titleL.includes('fraud')) {
-          category = 'consumer';
-        } else if (titleL.includes('bill') || titleL.includes('parliament') || titleL.includes('court') || titleL.includes('policy') || titleL.includes('law')) {
-          category = 'policy';
+        const ws = appState.currentWorkspace;
+
+        if (ws === 'press-releases') {
+          category = 'political'; // Default for press releases
+          const feedUrlL = feedUrl.toLowerCase();
+          const sourceL = channelTitle.toLowerCase();
+          
+          if (
+            feedUrlL.includes('gov.za') || 
+            feedUrlL.includes('gcis') || 
+            feedUrlL.includes('sanews') ||
+            sourceL.includes('gov') || 
+            sourceL.includes('government') ||
+            sourceL.includes('gcis')
+          ) {
+            category = 'government';
+          } else if (
+            feedUrlL.includes('outa') || 
+            feedUrlL.includes('corruption') || 
+            feedUrlL.includes('casac') || 
+            feedUrlL.includes('section27') || 
+            feedUrlL.includes('cosatu') || 
+            feedUrlL.includes('saftu') || 
+            feedUrlL.includes('tac.org.za') ||
+            sourceL.includes('outa') || 
+            sourceL.includes('corruption watch') || 
+            sourceL.includes('casac') || 
+            sourceL.includes('section 27') || 
+            sourceL.includes('cosatu') || 
+            sourceL.includes('saftu') || 
+            sourceL.includes('treatment action')
+          ) {
+            category = 'npo-ngo';
+          }
+        } else {
+          const titleL = pItem.title.toLowerCase();
+          if (titleL.includes('break') || titleL.includes('kill') || titleL.includes('warn') || titleL.includes('arrest')) {
+            category = 'breaking';
+          } else if (titleL.includes('power') || titleL.includes('water') || titleL.includes('eskom') || titleL.includes('municip') || titleL.includes('load')) {
+            category = 'delivery';
+          } else if (titleL.includes('price') || titleL.includes('inflation') || titleL.includes('scam') || titleL.includes('bank') || titleL.includes('fraud')) {
+            category = 'consumer';
+          } else if (titleL.includes('bill') || titleL.includes('parliament') || titleL.includes('court') || titleL.includes('policy') || titleL.includes('law')) {
+            category = 'policy';
+          }
         }
 
         allItems.push({
@@ -5463,6 +5601,20 @@ function setupRealtimeSubscription() {
 
 // 9. Startup Initialization
 function init() {
+  // Guard against missing/corrupted keyword structures
+  if (!appState.newsKeywords || !Array.isArray(appState.newsKeywords)) {
+    appState.newsKeywords = ['eskom', 'corruption', 'load shedding', 'inflation', 'policy', 'delivery'];
+    localStorage.setItem('cb_news_keywords', JSON.stringify(appState.newsKeywords));
+  }
+  if (!appState.globalNewsKeywords || !Array.isArray(appState.globalNewsKeywords)) {
+    appState.globalNewsKeywords = ['united nations', 'climate change', 'election', 'global economy', 'protest', 'technology'];
+    localStorage.setItem('cb_global_news_keywords', JSON.stringify(appState.globalNewsKeywords));
+  }
+  if (!appState.pressReleasesKeywords || !Array.isArray(appState.pressReleasesKeywords)) {
+    appState.pressReleasesKeywords = ['press release', 'announcement', 'launch', 'partnership', 'acquisition'];
+    localStorage.setItem('cb_press_releases_keywords', JSON.stringify(appState.pressReleasesKeywords));
+  }
+
   // Clean, normalize and remove duplicates from stored RSS feeds
   if (appState.rssFeeds && Array.isArray(appState.rssFeeds)) {
     appState.rssFeeds = Array.from(new Set(appState.rssFeeds.map(normalizeRssUrl)));
