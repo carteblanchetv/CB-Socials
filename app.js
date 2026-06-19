@@ -2770,47 +2770,33 @@ function renderLiveFeed() {
   
   paginatedItems.forEach(item => {
     const card = document.createElement('div');
-    card.className = `live-feed-card news-card-${item.category}`;
-    
-    let categoryLabel = 'Press Release';
     const ws = appState.currentWorkspace;
+    card.className = ws === 'press-releases' ? `live-feed-card news-card-${item.category}` : 'live-feed-card';
+    
+    let badgeHTML = '';
+    
     if (ws === 'press-releases') {
-      if (item.category === 'political') categoryLabel = 'POLITICAL';
-      else if (item.category === 'government') categoryLabel = 'GOVERNMENT';
-      else if (item.category === 'npo-ngo') categoryLabel = 'NPO/NGO';
-      else categoryLabel = (item.category || 'Press Release').toUpperCase();
-    } else {
-      if (item.category === 'breaking') categoryLabel = 'Breaking News';
-      else if (item.category === 'updates') categoryLabel = 'Updates';
-      else if (item.category === 'delivery') categoryLabel = 'Service Delivery';
-      else if (item.category === 'consumer') categoryLabel = 'Consumer Issues';
-      else if (item.category === 'policy') categoryLabel = 'Policy News';
+      let badgeClass = 'badge-cat-political';
+      let categoryLabel = 'POLITICAL';
+      if (item.category === 'political') { badgeClass = 'badge-cat-political'; categoryLabel = 'POLITICAL'; }
+      else if (item.category === 'government') { badgeClass = 'badge-cat-government'; categoryLabel = 'GOVERNMENT'; }
+      else if (item.category === 'npo-ngo') { badgeClass = 'badge-cat-npo-ngo'; categoryLabel = 'NPO/NGO'; }
+      else { categoryLabel = (item.category || 'Press Release').toUpperCase(); }
+      
+      badgeHTML = `<span class="news-category-badge ${badgeClass}" style="font-size: 0.55rem; padding: 0.15rem 0.35rem;">${categoryLabel}</span>`;
+    } else if (ws === 'news') {
+      const isIol = (item.source && item.source.toLowerCase().includes('iol')) || (item.link && item.link.toLowerCase().includes('iol.co.za'));
+      const isTimesLive = (item.source && item.source.toLowerCase().includes('timeslive')) || (item.link && item.link.toLowerCase().includes('timeslive.co.za'));
+      if (isIol || isTimesLive) {
+        badgeHTML = `<span class="news-category-badge badge-cat-breaking" style="font-size: 0.55rem; padding: 0.15rem 0.35rem;">FACT CHECK</span>`;
+      }
     }
-
-    let badgeClass = 'badge-cat-breaking';
-    if (ws === 'press-releases') {
-      if (item.category === 'political') badgeClass = 'badge-cat-political';
-      else if (item.category === 'government') badgeClass = 'badge-cat-government';
-      else if (item.category === 'npo-ngo') badgeClass = 'badge-cat-npo-ngo';
-    } else {
-      if (item.category === 'breaking') badgeClass = 'badge-cat-breaking';
-      else if (item.category === 'updates') badgeClass = 'badge-cat-updates';
-      else if (item.category === 'delivery') badgeClass = 'badge-cat-delivery';
-      else if (item.category === 'consumer') badgeClass = 'badge-cat-consumer';
-      else if (item.category === 'policy') badgeClass = 'badge-cat-policy';
-    }
-
-    const isIol = (item.source && item.source.toLowerCase().includes('iol')) || (item.link && item.link.toLowerCase().includes('iol.co.za'));
-    const isTimesLive = (item.source && item.source.toLowerCase().includes('timeslive')) || (item.link && item.link.toLowerCase().includes('timeslive.co.za'));
-    const factCheckBadge = (isIol || isTimesLive)
-      ? `<span class="fact-check-badge" style="color:var(--color-danger); font-weight:700; font-size:0.6rem; border:1.5px solid var(--color-danger); padding:0.1rem 0.35rem; border-radius:4px; text-transform:uppercase; letter-spacing:0.04em; margin-left:0.5rem; display:inline-flex; align-items:center; background:rgba(239, 68, 68, 0.1);">Fact Check</span>`
-      : '';
 
     card.innerHTML = `
       <div class="live-feed-card-header">
         <div style="display: flex; align-items: center; gap: 0.4rem;">
-          <span class="news-category-badge ${badgeClass}" style="font-size: 0.55rem; padding: 0.15rem 0.35rem;">${categoryLabel}</span>
-          <span>Source: <strong>${escapeHtml(item.source)}</strong>${factCheckBadge}</span>
+          ${badgeHTML}
+          <span>Source: <strong>${escapeHtml(item.source)}</strong></span>
         </div>
         <span>${formatTimeAgo(new Date(item.timestamp))}</span>
       </div>
@@ -2909,36 +2895,32 @@ function renderNewsTabsSwitcher() {
 
   const ws = appState.currentWorkspace;
   if (ws === 'press-releases') {
+    switcher.style.display = 'flex';
     switcher.innerHTML = `
       <button class="hub-tab active" data-category-filter="all">All</button>
       <button class="hub-tab" data-category-filter="political">Political</button>
       <button class="hub-tab" data-category-filter="government">Government</button>
       <button class="hub-tab" data-category-filter="npo-ngo">NPO/NGO</button>
     `;
-  } else {
-    switcher.innerHTML = `
-      <button class="hub-tab active" data-category-filter="all">All</button>
-      <button class="hub-tab" data-category-filter="breaking">Breaking</button>
-      <button class="hub-tab" data-category-filter="updates">Updates</button>
-      <button class="hub-tab" data-category-filter="delivery">Service Delivery</button>
-      <button class="hub-tab" data-category-filter="consumer">Consumer</button>
-      <button class="hub-tab" data-category-filter="policy">Policy</button>
-    `;
-  }
+    
+    // Set initial filter to all
+    appState.activeNewsCategoryFilter = 'all';
 
-  // Set initial filter to all
-  appState.activeNewsCategoryFilter = 'all';
-
-  // Attach click listeners
-  const tabs = switcher.querySelectorAll('button');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      appState.activeNewsCategoryFilter = tab.dataset.categoryFilter;
-      renderTrackedNews();
+    // Attach click listeners
+    const tabs = switcher.querySelectorAll('button');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        appState.activeNewsCategoryFilter = tab.dataset.categoryFilter;
+        renderTrackedNews();
+      });
     });
-  });
+  } else {
+    switcher.style.display = 'none';
+    switcher.innerHTML = '';
+    appState.activeNewsCategoryFilter = 'all';
+  }
 }
 
 function renderTrackedNews() {
@@ -2970,28 +2952,30 @@ function renderTrackedNews() {
     const card = document.createElement('div');
     card.className = 'news-tracker-item';
     
-    let badgeClass = 'badge-cat-breaking';
-    let categoryLabel = 'Breaking News';
+    let badgeHTML = '';
     const ws = appState.currentWorkspace;
 
     if (ws === 'press-releases') {
+      let badgeClass = 'badge-cat-npo-ngo';
+      let categoryLabel = 'Press Release';
       if (item.category === 'political') { badgeClass = 'badge-cat-political'; categoryLabel = 'POLITICAL'; }
       else if (item.category === 'government') { badgeClass = 'badge-cat-government'; categoryLabel = 'GOVERNMENT'; }
       else if (item.category === 'npo-ngo') { badgeClass = 'badge-cat-npo-ngo'; categoryLabel = 'NPO/NGO'; }
-      else { badgeClass = 'badge-cat-npo-ngo'; categoryLabel = (item.category || 'Press Release').toUpperCase(); }
-    } else {
-      if (item.category === 'breaking') { badgeClass = 'badge-cat-breaking'; categoryLabel = 'Breaking News'; }
-      else if (item.category === 'updates') { badgeClass = 'badge-cat-updates'; categoryLabel = 'Updates'; }
-      else if (item.category === 'delivery') { badgeClass = 'badge-cat-delivery'; categoryLabel = 'Service Delivery'; }
-      else if (item.category === 'consumer') { badgeClass = 'badge-cat-consumer'; categoryLabel = 'Consumer Issues'; }
-      else if (item.category === 'policy') { badgeClass = 'badge-cat-policy'; categoryLabel = 'Policy News'; }
+      else { categoryLabel = (item.category || 'Press Release').toUpperCase(); }
+      badgeHTML = `<span class="news-category-badge ${badgeClass}">${categoryLabel}</span>`;
+    } else if (ws === 'news') {
+      const isIol = (item.source && item.source.toLowerCase().includes('iol')) || (item.link && item.link.toLowerCase().includes('iol.co.za'));
+      const isTimesLive = (item.source && item.source.toLowerCase().includes('timeslive')) || (item.link && item.link.toLowerCase().includes('timeslive.co.za'));
+      if (isIol || isTimesLive) {
+        badgeHTML = `<span class="news-category-badge badge-cat-breaking">FACT CHECK</span>`;
+      }
     }
 
     card.innerHTML = `
       <div class="news-tracker-header">
         <div>
-          <span class="news-category-badge ${badgeClass}">${categoryLabel}</span>
-          <span style="font-size:0.7rem; color:var(--text-muted); margin-left:0.4rem;">Source: ${escapeHtml(item.source)}</span>
+          ${badgeHTML}
+          <span style="font-size:0.7rem; color:var(--text-muted);${badgeHTML ? ' margin-left:0.4rem;' : ''}">Source: ${escapeHtml(item.source)}</span>
         </div>
         <div style="display:flex; gap:0.35rem;">
           <button class="btn-copy-lib-action btn-news-edit" data-id="${item.id}" title="Edit article">
@@ -3038,6 +3022,9 @@ function openNewsModal(id = null) {
   
   const ws = appState.currentWorkspace;
   const select = elements.newsFormCategory;
+  const categoryGroup = select.closest('.form-group');
+  const titleGroup = elements.newsFormTitle.closest('.form-group');
+
   if (ws === 'press-releases') {
     select.innerHTML = `
       <option value="political">POLITICAL</option>
@@ -3045,15 +3032,14 @@ function openNewsModal(id = null) {
       <option value="npo-ngo">NPO/NGO</option>
     `;
     select.value = 'political';
+    if (categoryGroup) categoryGroup.style.display = 'block';
+    if (titleGroup) titleGroup.style.width = '';
   } else {
-    select.innerHTML = `
-      <option value="breaking">Breaking News</option>
-      <option value="updates">Updates</option>
-      <option value="delivery">Service Delivery Issues</option>
-      <option value="consumer">Consumer Issues</option>
-      <option value="policy">Policy News</option>
-    `;
-    select.value = 'breaking';
+    // Hide category selection for Local/Global News since there are no categories
+    if (categoryGroup) categoryGroup.style.display = 'none';
+    if (titleGroup) titleGroup.style.width = '100%';
+    select.innerHTML = `<option value="updates">Updates</option>`;
+    select.value = 'updates';
   }
   
   elements.newsFormSource.value = '';
