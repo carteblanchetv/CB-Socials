@@ -2764,6 +2764,19 @@ function renderLiveFeed() {
       else if (item.category === 'policy') categoryLabel = 'Policy News';
     }
 
+    let badgeClass = 'badge-cat-breaking';
+    if (ws === 'press-releases') {
+      if (item.category === 'political') badgeClass = 'badge-cat-political';
+      else if (item.category === 'government') badgeClass = 'badge-cat-government';
+      else if (item.category === 'npo-ngo') badgeClass = 'badge-cat-npo-ngo';
+    } else {
+      if (item.category === 'breaking') badgeClass = 'badge-cat-breaking';
+      else if (item.category === 'updates') badgeClass = 'badge-cat-updates';
+      else if (item.category === 'delivery') badgeClass = 'badge-cat-delivery';
+      else if (item.category === 'consumer') badgeClass = 'badge-cat-consumer';
+      else if (item.category === 'policy') badgeClass = 'badge-cat-policy';
+    }
+
     const isIol = (item.source && item.source.toLowerCase().includes('iol')) || (item.link && item.link.toLowerCase().includes('iol.co.za'));
     const isTimesLive = (item.source && item.source.toLowerCase().includes('timeslive')) || (item.link && item.link.toLowerCase().includes('timeslive.co.za'));
     const factCheckBadge = (isIol || isTimesLive)
@@ -2772,7 +2785,10 @@ function renderLiveFeed() {
 
     card.innerHTML = `
       <div class="live-feed-card-header">
-        <span>Source: <strong>${escapeHtml(item.source)}</strong>${factCheckBadge}</span>
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <span class="news-category-badge ${badgeClass}" style="font-size: 0.55rem; padding: 0.15rem 0.35rem;">${categoryLabel}</span>
+          <span>Source: <strong>${escapeHtml(item.source)}</strong>${factCheckBadge}</span>
+        </div>
         <span>${formatTimeAgo(new Date(item.timestamp))}</span>
       </div>
       <h4 class="live-feed-card-title">${escapeHtml(item.title)}</h4>
