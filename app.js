@@ -1658,6 +1658,20 @@ function initEvents() {
       return;
     }
 
+    // Check if the time slot for the specific platform has already been used
+    for (const plat of platforms) {
+      const existing = appState.posts.find(p => 
+        p.id !== id && 
+        p.scheduledDate === date && 
+        p.scheduledTime === time && 
+        (p.platforms || []).includes(plat)
+      );
+      if (existing) {
+        alert(`The time slot ${time} on ${date} for ${plat.toUpperCase()} has already been used by the post:\n"${existing.title}"`);
+        return;
+      }
+    }
+
     if (id) {
       // Edit post
       const index = appState.posts.findIndex(p => p.id === id);
@@ -1956,6 +1970,23 @@ function initEvents() {
       if (selectedPlatforms.length === 0) {
         alert('Please select at least one platform to schedule.');
         return;
+      }
+      
+      // Check if time slot is already used for each selected platform
+      for (const plat of selectedPlatforms) {
+        const dateVal = document.getElementById(`push-date-${plat}`).value;
+        const timeVal = document.getElementById(`push-time-${plat}`).value;
+        if (!dateVal || !timeVal) continue;
+        
+        const existing = appState.posts.find(p => 
+          p.scheduledDate === dateVal && 
+          p.scheduledTime === timeVal && 
+          (p.platforms || []).includes(plat)
+        );
+        if (existing) {
+          alert(`The time slot ${timeVal} on ${dateVal} for ${plat.toUpperCase()} has already been used by the post:\n"${existing.title}"`);
+          return;
+        }
       }
       
       // For each platform, create a separate post/draft item
