@@ -5916,14 +5916,38 @@ async function openArticleReaderModal(title, link, source, timestamp) {
   const readerContent = document.getElementById('article-reader-content');
   const readerPaywallAlert = document.getElementById('article-reader-paywall-alert');
   const btnOriginal = document.getElementById('btn-article-reader-original');
+  const imageContainer = document.getElementById('article-reader-image-container');
+  const imageEl = document.getElementById('article-reader-image');
+  const bylineContainer = document.getElementById('article-reader-byline-container');
+  const bylineEl = document.getElementById('article-reader-byline');
   
   if (!modal) return;
   
-  // Set meta details
+  // Reset and set meta details
   readerTitle.textContent = title;
   readerSource.textContent = source;
-  readerDate.textContent = formatTimeAgo(new Date(timestamp));
   btnOriginal.href = link;
+  
+  if (imageContainer) imageContainer.style.display = 'none';
+  if (bylineContainer) bylineContainer.style.display = 'none';
+  
+  // Format initial date/time published from the feed timestamp
+  let initialDateString = '';
+  try {
+    const d = new Date(timestamp);
+    initialDateString = d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }) + ' at ' + d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch(e) {
+    initialDateString = formatTimeAgo(new Date(timestamp));
+  }
+  readerDate.textContent = initialDateString;
   
   // Show loading
   readerContent.innerHTML = `
@@ -5970,7 +5994,58 @@ async function openArticleReaderModal(title, link, source, timestamp) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlText, "text/html");
     
-    // Check for paywall indicators
+    // 1. Extract byline / author
+    const author = doc.querySelector('meta[name="author"]')?.getAttribute('content') ||
+                   doc.querySelector('meta[property="og:article:author"]')?.getAttribute('content') ||
+                   doc.querySelector('meta[name="twitter:creator"]')?.getAttribute('content') ||
+                   doc.querySelector('.byline')?.textContent ||
+                   doc.querySelector('.author')?.textContent ||
+                   doc.querySelector('[itemprop="author"]')?.textContent ||
+                   '';
+    const bylineCleaned = author.trim().replace(/\s+/g, ' ');
+    if (bylineCleaned && bylineContainer && bylineEl) {
+      bylineEl.textContent = bylineCleaned;
+      bylineContainer.style.display = 'block';
+    }
+    
+    // 2. Extract publication date/time
+    const pubTime = doc.querySelector('meta[property="article:published_time"]')?.getAttribute('content') ||
+                    doc.querySelector('meta[property="og:article:published_time"]')?.getAttribute('content') ||
+                    doc.querySelector('meta[name="publish-date"]')?.getAttribute('content') ||
+                    doc.querySelector('meta[name="publication-date"]')?.getAttribute('content') ||
+                    doc.querySelector('time')?.getAttribute('datetime') ||
+                    doc.querySelector('time')?.textContent ||
+                    '';
+    if (pubTime) {
+      try {
+        const parsedDate = new Date(pubTime);
+        if (!isNaN(parsedDate.getTime())) {
+          readerDate.textContent = parsedDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }) + ' at ' + parsedDate.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+        }
+      } catch (e) {
+        // keep initial Date
+      }
+    }
+    
+    // 3. Extract display/feature image
+    const imgUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') ||
+                   doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content') ||
+                   doc.querySelector('link[rel="image_src"]')?.getAttribute('href') ||
+                   '';
+    if (imgUrl && imageContainer && imageEl && (imgUrl.startsWith('http://') || imgUrl.startsWith('https://'))) {
+      imageEl.src = imgUrl;
+      imageContainer.style.display = 'block';
+    }
+    
+    // 4. Check for paywall indicators
     let isPaywalled = false;
     const urlLower = link.toLowerCase();
     const htmlLower = htmlText.toLowerCase();
@@ -5995,7 +6070,7 @@ async function openArticleReaderModal(title, link, source, timestamp) {
       isPaywalled = true;
     }
     
-    // Extract paragraphs
+    // 5. Extract paragraphs
     const articleContainer = doc.querySelector('article') || doc.querySelector('.article-body') || doc.querySelector('.story-content') || doc.body;
     let paragraphs = Array.from(articleContainer.querySelectorAll('p'));
     
@@ -6027,7 +6102,7 @@ async function openArticleReaderModal(title, link, source, timestamp) {
       if (metaDesc) {
         textParagraphs = [metaDesc, "[No further readable content extracted natively. Please visit the original site.]"];
       } else {
-        textParagraphs = ["No readable text paragraphs found in this article natively. Please click 'View Original Website' to read."];
+        textParagraphs = ["No readable text paragraphs found in this article natively. Please click 'View Full Article' to read."];
       }
     }
     
