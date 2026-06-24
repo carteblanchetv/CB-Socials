@@ -2949,6 +2949,39 @@ textarea {
   margin-top: 0.25rem;
 }
 
+/* Live updates wire item marking buttons */
+.btn-mark {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-mark:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.btn-mark.btn-mark-useful.active {
+  background: rgba(52, 211, 153, 0.2); /* Emerald green tint */
+  border-color: #34d399;
+  color: #34d399;
+}
+.btn-mark.btn-mark-follow.active {
+  background: rgba(96, 165, 250, 0.2); /* Blue tint */
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+.btn-mark.btn-mark-cb.active {
+  background: rgba(251, 146, 60, 0.2); /* Orange tint */
+  border-color: #fb923c;
+  color: #fb923c;
+}
+
+
 /* Category news tracker designs */
 .news-tracker-item {
   background: var(--card-bg);

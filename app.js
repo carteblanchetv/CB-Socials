@@ -2853,21 +2853,62 @@ function renderLiveFeed() {
       }
     }
 
+    let markBadgeHTML = '';
+    if (item.mark === 'useful') {
+      markBadgeHTML = `<span class="news-category-badge" style="background: rgba(52, 211, 153, 0.2); border: 1px solid #34d399; color: #34d399; font-size: 0.55rem; padding: 0.15rem 0.35rem; text-transform: uppercase;">USEFUL</span>`;
+    } else if (item.mark === 'follow') {
+      markBadgeHTML = `<span class="news-category-badge" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #60a5fa; color: #60a5fa; font-size: 0.55rem; padding: 0.15rem 0.35rem; text-transform: uppercase;">FOLLOW</span>`;
+    } else if (item.mark === 'cb-update') {
+      markBadgeHTML = `<span class="news-category-badge" style="background: rgba(251, 146, 60, 0.2); border: 1px solid #fb923c; color: #fb923c; font-size: 0.55rem; padding: 0.15rem 0.35rem; text-transform: uppercase;">CB UPDATE</span>`;
+    }
+
     card.innerHTML = `
       <div class="live-feed-card-header">
-        <div style="display: flex; align-items: center; gap: 0.4rem;">
+        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
           ${badgeHTML}
+          ${markBadgeHTML}
           <span>Source: <strong style="color: var(--source-color);">${escapeHtml(item.source)}</strong></span>
         </div>
         <span>${formatTimeAgo(new Date(item.timestamp))}</span>
       </div>
       <h4 class="live-feed-card-title">${escapeHtml(item.title)}</h4>
       <p class="live-feed-card-summary">${escapeHtml(item.summary)}</p>
-      <div class="live-feed-card-actions">
-        <button class="btn btn-primary btn-sm btn-formulate" data-id="${item.id}" style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:4px;">Formulate Post</button>
-        <button class="btn btn-outline btn-sm btn-track-article" data-id="${item.id}" style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:4px;">Track Article</button>
+      <div class="live-feed-card-actions" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; width: 100%;">
+        <div style="display: flex; gap: 0.4rem;">
+          <button class="btn btn-primary btn-sm btn-formulate" data-id="${item.id}" style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:4px;">Formulate Post</button>
+          <button class="btn btn-outline btn-sm btn-track-article" data-id="${item.id}" style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:4px;">Track Article</button>
+        </div>
+        <div class="live-feed-card-marks" style="display: flex; align-items: center; gap: 0.35rem;">
+          <span style="font-size: 0.62rem; color: var(--text-muted);">Mark:</span>
+          <button class="btn-mark btn-mark-useful ${item.mark === 'useful' ? 'active' : ''}" data-id="${item.id}" data-mark="useful">Useful</button>
+          <button class="btn-mark btn-mark-follow ${item.mark === 'follow' ? 'active' : ''}" data-id="${item.id}" data-mark="follow">Follow</button>
+          <button class="btn-mark btn-mark-cb ${item.mark === 'cb-update' ? 'active' : ''}" data-id="${item.id}" data-mark="cb-update">CB Update</button>
+        </div>
       </div>
     `;
+
+    // Click handler for marks
+    card.querySelectorAll('.btn-mark').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const markType = btn.dataset.mark;
+        const feedInfo = getCurrentWorkspaceLiveFeedInfo();
+        const updatedArray = feedInfo.array.map(fItem => {
+          if (fItem.id === item.id || (fItem.title === item.title && fItem.timestamp === item.timestamp)) {
+            return {
+              ...fItem,
+              mark: fItem.mark === markType ? null : markType
+            };
+          }
+          return fItem;
+        });
+
+        feedInfo.set(updatedArray);
+        localStorage.setItem(feedInfo.key, JSON.stringify(updatedArray));
+        renderLiveFeed();
+        showToast('Wire item marked successfully!');
+      });
+    });
+
 
     // Click handler for formulate post
     card.querySelector('.btn-formulate').addEventListener('click', () => {
