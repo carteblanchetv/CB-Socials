@@ -1940,10 +1940,17 @@ function initEvents() {
   // Story modal close
   elements.btnStoryModalClose.addEventListener('click', closeStoryModal);
   elements.btnStoryCancel.addEventListener('click', closeStoryModal);
+  // Article Reader modal close handlers
+  const btnArticleReaderClose = document.getElementById('btn-article-reader-close');
+  const btnArticleReaderCloseAction = document.getElementById('btn-article-reader-close-action');
+  if (btnArticleReaderClose) btnArticleReaderClose.addEventListener('click', closeArticleReaderModal);
+  if (btnArticleReaderCloseAction) btnArticleReaderCloseAction.addEventListener('click', closeArticleReaderModal);
+
   window.addEventListener('click', (e) => {
     if (e.target === elements.storyModal) closeStoryModal();
     if (e.target === elements.calendarNoteModal) closeCalendarNoteModal();
     if (e.target === elements.pushCalendarModal) closePushToCalendarModal();
+    if (e.target === document.getElementById('article-reader-modal')) closeArticleReaderModal();
   });
 
   // Add copy version textarea
@@ -2871,7 +2878,7 @@ function renderLiveFeed() {
         </div>
         <span>${formatTimeAgo(new Date(item.timestamp))}</span>
       </div>
-      <h4 class="live-feed-card-title">${escapeHtml(item.title)}</h4>
+      <h4 class="live-feed-card-title clickable-title">${escapeHtml(item.title)}</h4>
       <p class="live-feed-card-summary">${escapeHtml(item.summary)}</p>
       <div class="live-feed-card-actions" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; width: 100%;">
         <div style="display: flex; gap: 0.4rem;">
@@ -2909,6 +2916,10 @@ function renderLiveFeed() {
       });
     });
 
+    // Click handler for title to read natively
+    card.querySelector('.live-feed-card-title').addEventListener('click', () => {
+      openArticleReaderModal(item.title, item.link, item.source, item.timestamp);
+    });
 
     // Click handler for formulate post
     card.querySelector('.btn-formulate').addEventListener('click', () => {
@@ -5889,6 +5900,145 @@ function init() {
     appState.selectedPreviewPostId = appState.posts[0].id;
     renderDrafts();
     renderFeedSimulator();
+  }
+}
+
+function closeArticleReaderModal() {
+  const modal = document.getElementById('article-reader-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function openArticleReaderModal(title, link, source, timestamp) {
+  const modal = document.getElementById('article-reader-modal');
+  const readerTitle = document.getElementById('article-reader-title');
+  const readerSource = document.getElementById('article-reader-source');
+  const readerDate = document.getElementById('article-reader-date');
+  const readerContent = document.getElementById('article-reader-content');
+  const readerPaywallAlert = document.getElementById('article-reader-paywall-alert');
+  const btnOriginal = document.getElementById('btn-article-reader-original');
+  
+  if (!modal) return;
+  
+  // Set meta details
+  readerTitle.textContent = title;
+  readerSource.textContent = source;
+  readerDate.textContent = formatTimeAgo(new Date(timestamp));
+  btnOriginal.href = link;
+  
+  // Show loading
+  readerContent.innerHTML = `
+    <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; padding:2rem 0; color:var(--text-muted);">
+      <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+      <span style="font-size:0.75rem;">Fetching full article natively via proxy...</span>
+    </div>
+  `;
+  
+  readerPaywallAlert.style.display = 'none';
+  modal.style.display = 'flex';
+  
+  let htmlText = '';
+  let success = false;
+  
+  // Try proxies sequentially
+  for (let i = 0; i < PROXY_PROVIDERS.length; i++) {
+    const provider = PROXY_PROVIDERS[i];
+    if (provider.name === 'rss2json') continue; // Only fetch raw HTML
+    try {
+      console.log(`[Reader] Fetching article via ${provider.name}: ${link}`);
+      const resObj = await provider.fetch(link);
+      if (resObj && resObj.content) {
+        htmlText = resObj.content;
+        success = true;
+        break;
+      }
+    } catch (e) {
+      console.warn(`[Reader] Proxy ${provider.name} failed:`, e);
+    }
+  }
+  
+  if (!success || !htmlText) {
+    readerContent.innerHTML = `
+      <div style="text-align:center; padding:2rem 0; color:var(--text-muted);">
+        <p style="font-size:0.8rem; margin-bottom:1rem;">Could not fetch article content natively due to origin access restrictions or proxy limitations.</p>
+        <p style="font-size:0.75rem;">Please read the article directly on the host website.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, "text/html");
+    
+    // Check for paywall indicators
+    let isPaywalled = false;
+    const urlLower = link.toLowerCase();
+    const htmlLower = htmlText.toLowerCase();
+    
+    if (
+      urlLower.includes('/premium') || 
+      urlLower.includes('/subscriber') || 
+      urlLower.includes('/opinion/') || 
+      urlLower.includes('/exclusive')
+    ) {
+      isPaywalled = true;
+    }
+    
+    const paywallKeywords = [
+      'paywall', 'exclusive to subscriber', 'subscriber-only', 'reserved for subscriber',
+      'read the full story by subscribing', 'sign in to read the full story', 'premium content',
+      'choose a plan to continue reading', 'subscription is required', 'this article is exclusive',
+      'subscriber exclusive', 'limited access'
+    ];
+    
+    if (paywallKeywords.some(kw => htmlLower.includes(kw))) {
+      isPaywalled = true;
+    }
+    
+    // Extract paragraphs
+    const articleContainer = doc.querySelector('article') || doc.querySelector('.article-body') || doc.querySelector('.story-content') || doc.body;
+    let paragraphs = Array.from(articleContainer.querySelectorAll('p'));
+    
+    // Filter paragraphs: skip short ones, nav links, cookie prompts, etc.
+    let textParagraphs = paragraphs
+      .map(p => p.textContent.trim())
+      .filter(txt => {
+        if (txt.length < 30) return false;
+        const boilerplates = [
+          'cookie', 'all rights reserved', 'read more:', 'sign up for', 'subscriber agreement',
+          'terms of service', 'privacy policy', 'click here to', 'follow us on', 'feedback'
+        ];
+        return !boilerplates.some(b => txt.toLowerCase().includes(b));
+      });
+      
+    // If we extracted very few substantial paragraphs, or found typical paywall cuts:
+    if (textParagraphs.length <= 2 && (htmlLower.includes('subscrib') || htmlLower.includes('sign in') || htmlLower.includes('register'))) {
+      isPaywalled = true;
+    }
+    
+    if (isPaywalled) {
+      readerPaywallAlert.style.display = 'flex';
+    }
+    
+    if (textParagraphs.length === 0) {
+      const metaDesc = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
+                       doc.querySelector('meta[name="description"]')?.getAttribute('content') ||
+                       '';
+      if (metaDesc) {
+        textParagraphs = [metaDesc, "[No further readable content extracted natively. Please visit the original site.]"];
+      } else {
+        textParagraphs = ["No readable text paragraphs found in this article natively. Please click 'View Original Website' to read."];
+      }
+    }
+    
+    // Inject content
+    readerContent.innerHTML = textParagraphs
+      .map(txt => `<p style="margin-bottom:1rem; text-indent: 1rem; text-align: justify;">${escapeHtml(txt)}</p>`)
+      .join('');
+      
+  } catch (err) {
+    console.error('Error parsing natively:', err);
+    readerContent.innerHTML = `<p style="color:var(--color-danger);">Error occurred while parsing article text content.</p>`;
   }
 }
 

@@ -2937,6 +2937,14 @@ textarea {
   color: var(--text-primary);
   margin: 0;
 }
+.live-feed-card-title.clickable-title {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.live-feed-card-title.clickable-title:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
 .live-feed-card-summary {
   font-size: 0.78rem;
   color: var(--text-secondary);
